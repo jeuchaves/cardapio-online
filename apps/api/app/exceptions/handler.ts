@@ -34,6 +34,11 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       case 'E_ROUTE_NOT_FOUND':
       case 'E_ROW_NOT_FOUND':
         return response.status(404).send(toBody(ApiError.notFound()))
+      case 'E_REQUEST_ENTITY_TOO_LARGE':
+        return response.status(413).send({
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'O arquivo enviado é grande demais.',
+        })
       case 'E_TOO_MANY_REQUESTS': {
         const availableIn = (known.response as { availableIn?: number } | undefined)?.availableIn
         if (availableIn) response.header('Retry-After', String(availableIn))

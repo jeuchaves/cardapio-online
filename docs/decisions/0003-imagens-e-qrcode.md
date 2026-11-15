@@ -35,3 +35,12 @@ Produtos e o restaurante têm imagem (produto e logo). Cada restaurante imprime 
 - Os testes de upload (F3-T5) rodam contra o disco local. O contrato S3 precisa de verificação em homologação, após a escolha do provedor (ABERTO-02, que bloqueia só a produção).
 - Backup (F6-T5) cobre o banco **e** as imagens.
 - Trocar de provedor exige copiar os objetos e ajustar as variáveis de ambiente, sem alterar o banco.
+
+## Adendo — F3-T5 (upload de imagens)
+
+- **Biblioteca:** `@adonisjs/drive` 4 (recurso oficial; flydrive 2). Só o serviço `fs` está configurado (`apps/api/config/drive.ts`), em `UPLOADS_ROOT` (padrão `storage/`, ignorado pelo git). O SDK do S3 é peer opcional e **não foi instalado**: o serviço S3 será acrescentado à mesma configuração quando o provedor for escolhido (ABERTO-02). **O caminho S3 não foi validado contra nenhum provedor.**
+- **Leitura:** rota própria `GET /uploads/*` (o `serveFiles` do drive fica desligado). Só serve chaves no formato exato `restaurants/<uuid>/(products|logo)/<uuid>.(jpg|png|webp)`; o `Content-Type` vem da extensão da chave, com `X-Content-Type-Options: nosniff`. Sem listagem e sem sessão. O Next repassa `/uploads/*` para a API.
+- **URL:** o banco guarda a chave; a API devolve `image_url` / `logo_url` a partir de `UPLOADS_PUBLIC_BASE` (padrão `/uploads`).
+- **Validação:** um único arquivo no campo `file`; tipo detectado pelos bytes (JPEG `FF D8 FF`, PNG, WebP `RIFF` + `WEBP` nos bytes 0–3 e 8–11); extensão e MIME informados pelo cliente precisam ser coerentes com o tipo detectado; máximo de 5 MB conferido no tamanho efetivo do arquivo temporário.
+- **Multipart:** só as duas rotas de imagem processam multipart (`autoProcess` por rota). O limite do corpo é 6 MB (os 5 MB da imagem mais o envelope do multipart; acima disso, `413`). O arquivo temporário vai para `apps/api/tmp/uploads` e o middleware `cleanupUploads` o apaga ao fim de qualquer resposta.
+- **Ordem:** validar, gravar o arquivo novo, atualizar o banco (linha travada com `FOR UPDATE`) e só então apagar o antigo. Falha no banco remove o arquivo novo; falha ao remover o antigo é registrada em log (só a chave) e não derruba a operação. Excluir o produto também remove a imagem.

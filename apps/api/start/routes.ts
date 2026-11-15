@@ -63,21 +63,42 @@ router
       .group(() => {
         router.get('restaurant', [controllers.TenantRestaurant, 'show'])
 
+        router.get('categories', [controllers.Categories, 'index'])
+        router.post('categories', [controllers.Categories, 'store'])
+        router.patch('categories/:id', [controllers.Categories, 'update'])
+
+        router.get('products', [controllers.Products, 'index'])
+        router.post('products', [controllers.Products, 'store'])
+        router.patch('products/:id', [controllers.Products, 'update'])
+        router.put('products/:id/addons', [controllers.Products, 'replaceAddons'])
+        router.put('products/:id/image', [controllers.Products, 'putImage'])
+
+        router.get('addons', [controllers.Addons, 'index'])
+        router.post('addons', [controllers.Addons, 'store'])
+        router.patch('addons/:id', [controllers.Addons, 'update'])
+
         // Somente owner
         router
           .group(() => {
             router.patch('restaurant', [controllers.TenantRestaurant, 'update'])
             router.patch('restaurant/settings', [controllers.TenantRestaurant, 'updateSettings'])
+            router.put('restaurant/logo', [controllers.TenantRestaurant, 'putLogo'])
 
             router.get('staff', [controllers.Staff, 'index'])
             router.post('staff', [controllers.Staff, 'store'])
             router.patch('staff/:userId', [controllers.Staff, 'update'])
             router.post('staff/:userId/reset-password', [controllers.Staff, 'resetPassword'])
+
+            router.delete('categories/:id', [controllers.Categories, 'destroy'])
+            router.delete('products/:id', [controllers.Products, 'destroy'])
+            router.delete('products/:id/image', [controllers.Products, 'destroyImage'])
+            router.delete('addons/:id', [controllers.Addons, 'destroy'])
           })
           .use(middleware.ownerOnly())
       })
       .prefix('tenant/:restaurantId')
       .use([
+        middleware.cleanupUploads(),
         middleware.origin(),
         middleware.session(),
         middleware.initializeAuth(),
@@ -88,3 +109,6 @@ router
       ])
   })
   .prefix('/api/v1')
+
+// Leitura pública das imagens (ADR 0003): sem sessão, só chaves no formato estrito
+router.get('/uploads/*', [controllers.Uploads, 'show'])

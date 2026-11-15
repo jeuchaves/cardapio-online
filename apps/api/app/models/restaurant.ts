@@ -1,7 +1,8 @@
 import { RestaurantSchema } from '#database/schema'
+import { imageUrl } from '#support/images'
 
 export default class Restaurant extends RestaurantSchema {
-  /** Representação da API: valores monetários não existem aqui; sem `logo` até haver upload. */
+  /** Representação da API: valores monetários não existem aqui; a imagem sai como `logo_url`. */
   toApi() {
     return {
       id: this.id,
@@ -9,6 +10,7 @@ export default class Restaurant extends RestaurantSchema {
       slug: this.slug,
       description: this.description,
       phone: this.phone,
+      logo_url: imageUrl(this.logo),
       is_active: this.isActive,
       accepts_dine_in: this.acceptsDineIn,
       accepts_pickup: this.acceptsPickup,

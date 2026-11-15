@@ -1,7 +1,9 @@
+import db from '@adonisjs/lucid/services/db'
 import type { HttpContext } from '@adonisjs/core/http'
 import ApiError from '#exceptions/api_error'
 import Restaurant from '#models/restaurant'
 import { audit } from '#support/audit'
+import { removeImage, storeImage, validateImage } from '#support/images'
 import {
   rejectBlankWhenPresent,
   rejectUnknownFields,
@@ -72,6 +74,35 @@ export default class TenantRestaurantController {
       type: 'restaurant',
       id: restaurant.id,
     })
+    return { data: restaurant.toApi() }
+  }
+
+  /** Mesma ordem do produto: validar, gravar o novo, atualizar o banco e só então apagar o antigo. */
+  async putLogo(ctx: HttpContext) {
+    const upload = await validateImage(ctx.request)
+    const newKey = await storeImage(ctx.tenant.restaurantId, 'logo', upload)
+
+    let oldKey: string | null
+    let restaurant: Restaurant
+    try {
+      ;({ oldKey, restaurant } = await db.transaction(async (trx) => {
+        const locked = await Restaurant.query({ client: trx })
+          .where('id', ctx.tenant.restaurantId)
+          .forUpdate()
+          .first()
+        if (!locked) throw ApiError.notFound()
+        const previous = locked.logo
+        locked.logo = newKey
+        await locked.save()
+        return { oldKey: previous, restaurant: locked }
+      }))
+    } catch (error) {
+      await removeImage(newKey)
+      throw error
+    }
+    await removeImage(oldKey)
+
+    audit(ctx.auth.user!.id, 'restaurant.update_logo', { type: 'restaurant', id: restaurant.id })
     return { data: restaurant.toApi() }
   }
 }

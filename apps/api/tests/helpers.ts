@@ -18,7 +18,9 @@ function next() {
 
 /** Estado limpo entre testes: tabelas e contadores de rate limit. */
 export async function resetState() {
-  await db.rawQuery('TRUNCATE sessions, restaurant_users, restaurants, users')
+  await db.rawQuery(
+    'TRUNCATE sessions, restaurant_users, product_product_addons, products, product_addons, categories, restaurants, users'
+  )
   await limiter.clear()
 }
 

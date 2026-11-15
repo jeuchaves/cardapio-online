@@ -1,3 +1,7 @@
+import { randomUUID } from 'node:crypto'
+import { mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/core/bodyparser'
 
 const bodyParserConfig = defineConfig({
@@ -51,7 +55,17 @@ const bodyParserConfig = defineConfig({
     /**
      * Automatically process uploaded files into the system tmp directory.
      */
-    autoProcess: true,
+    // Só as rotas de imagem aceitam multipart; nas demais o corpo nem é gravado em disco.
+    autoProcess: [
+      '/api/v1/tenant/:restaurantId/products/:id/image',
+      '/api/v1/tenant/:restaurantId/restaurant/logo',
+    ],
+
+    // Pasta temporária própria (ignorada pelo git); o middleware cleanupUploads apaga os arquivos.
+    tmpFileName: () => {
+      mkdirSync(app.tmpPath('uploads'), { recursive: true })
+      return join(app.tmpPath('uploads'), randomUUID())
+    },
 
     /**
      * Normalize empty string values to null.
@@ -66,7 +80,7 @@ const bodyParserConfig = defineConfig({
     /**
      * Maximum accepted payload size for multipart requests.
      */
-    limit: '20mb',
+    limit: '6mb',
 
     /**
      * Content types handled by the multipart parser.

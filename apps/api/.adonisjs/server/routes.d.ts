@@ -16,12 +16,29 @@ export type ScannedRoutes = {
     'platform_restaurants.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'platform_restaurants.reset_owner_password': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'categories.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'categories.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'categories.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'products.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.replace_addons': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.put_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'addons.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'addons.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'tenant_restaurant.update': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tenant_restaurant.update_settings': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'tenant_restaurant.put_logo': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
     'staff.reset_password': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
+    'categories.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.destroy_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'addons.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   GET: {
     'health.show': { paramsTuple?: []; params?: {} }
@@ -29,7 +46,11 @@ export type ScannedRoutes = {
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'categories.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   HEAD: {
     'health.show': { paramsTuple?: []; params?: {} }
@@ -37,13 +58,20 @@ export type ScannedRoutes = {
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'categories.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   POST: {
     'auth.login': { paramsTuple?: []; params?: {} }
     'auth.logout': { paramsTuple?: []; params?: {} }
     'platform_restaurants.store': { paramsTuple?: []; params?: {} }
     'platform_restaurants.reset_owner_password': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'products.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'addons.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.reset_password': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
   }
@@ -51,9 +79,23 @@ export type ScannedRoutes = {
     'auth.change_password': { paramsTuple?: []; params?: {} }
     'platform_restaurants.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'platform_restaurants.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'addons.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'tenant_restaurant.update': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tenant_restaurant.update_settings': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
+  }
+  PUT: {
+    'products.replace_addons': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.put_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'tenant_restaurant.put_logo': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+  }
+  DELETE: {
+    'categories.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'products.destroy_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'addons.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

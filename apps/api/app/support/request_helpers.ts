@@ -48,3 +48,9 @@ export function rejectBlankWhenPresent(body: unknown, fields: string[]) {
     }
   }
 }
+
+/** Violação de chave estrangeira do PostgreSQL (23503), opcionalmente de uma restrição específica. */
+export function isForeignKeyViolation(error: unknown, constraint?: string) {
+  const pg = error as { code?: string; constraint?: string }
+  return pg?.code === '23503' && (constraint === undefined || pg.constraint === constraint)
+}

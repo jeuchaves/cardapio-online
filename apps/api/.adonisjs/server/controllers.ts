@@ -4,9 +4,13 @@
  */
 
 export const controllers = {
+  Addons: () => import('#controllers/addons_controller'),
   Auth: () => import('#controllers/auth_controller'),
+  Categories: () => import('#controllers/categories_controller'),
   Health: () => import('#controllers/health_controller'),
   PlatformRestaurants: () => import('#controllers/platform_restaurants_controller'),
+  Products: () => import('#controllers/products_controller'),
   Staff: () => import('#controllers/staff_controller'),
   TenantRestaurant: () => import('#controllers/tenant_restaurant_controller'),
+  Uploads: () => import('#controllers/uploads_controller'),
 }

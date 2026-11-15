@@ -7,6 +7,88 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class CategorySchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'id', 'isActive', 'name', 'restaurantId', 'sortOrder', 'updatedAt'] as const
+  $columns = CategorySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isActive: boolean
+  @column()
+  declare name: string
+  @column()
+  declare restaurantId: string
+  @column()
+  declare sortOrder: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class ProductAddonSchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'id', 'isAvailable', 'name', 'price', 'restaurantId', 'updatedAt'] as const
+  $columns = ProductAddonSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isAvailable: boolean
+  @column()
+  declare name: string
+  @column()
+  declare price: string
+  @column()
+  declare restaurantId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class ProductProductAddonSchema extends BaseModel {
+  static $columns = ['createdAt', 'productAddonId', 'productId', 'restaurantId'] as const
+  $columns = ProductProductAddonSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare productAddonId: string
+  @column({ isPrimary: true })
+  declare productId: string
+  @column()
+  declare restaurantId: string
+}
+
+export class ProductSchema extends BaseModel {
+  static $columns = ['categoryId', 'createdAt', 'description', 'id', 'image', 'isAvailable', 'name', 'price', 'restaurantId', 'sortOrder', 'updatedAt'] as const
+  $columns = ProductSchema.$columns
+  @column()
+  declare categoryId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare image: string | null
+  @column()
+  declare isAvailable: boolean
+  @column()
+  declare name: string
+  @column()
+  declare price: string
+  @column()
+  declare restaurantId: string
+  @column()
+  declare sortOrder: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class RestaurantUserSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'isActive', 'restaurantId', 'role', 'updatedAt', 'userId'] as const
   $columns = RestaurantUserSchema.$columns

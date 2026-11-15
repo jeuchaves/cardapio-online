@@ -42,6 +42,7 @@ export const middleware = router.named({
   initializeAuth: () => import('@adonisjs/auth/initialize_auth_middleware'),
   auth: () => import('#middleware/auth_middleware'),
   origin: () => import('#middleware/origin_middleware'),
+  cleanupUploads: () => import('#middleware/cleanup_uploads_middleware'),
   absoluteSession: () => import('#middleware/absolute_session_middleware'),
   passwordChange: () => import('#middleware/password_change_middleware'),
   platformAdmin: () => import('#middleware/platform_admin_middleware'),
