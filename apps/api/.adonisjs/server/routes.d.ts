@@ -9,6 +9,7 @@ export type ScannedRoutes = {
     'auth.logout': { paramsTuple?: []; params?: {} }
     'auth.change_password': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
+    'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.store': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -47,6 +48,7 @@ export type ScannedRoutes = {
   GET: {
     'health.show': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
+    'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
@@ -60,6 +62,7 @@ export type ScannedRoutes = {
   HEAD: {
     'health.show': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
+    'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }

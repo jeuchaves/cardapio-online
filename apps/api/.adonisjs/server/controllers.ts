@@ -10,6 +10,7 @@ export const controllers = {
   Health: () => import('#controllers/health_controller'),
   PlatformRestaurants: () => import('#controllers/platform_restaurants_controller'),
   Products: () => import('#controllers/products_controller'),
+  PublicMenu: () => import('#controllers/public_menu_controller'),
   Staff: () => import('#controllers/staff_controller'),
   Tables: () => import('#controllers/tables_controller'),
   TenantRestaurant: () => import('#controllers/tenant_restaurant_controller'),

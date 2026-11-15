@@ -34,6 +34,13 @@ router
       .prefix('auth')
       .use([middleware.origin(), middleware.session(), middleware.initializeAuth()])
 
+    // Público (ADR 0002): sem sessão, autenticação nem Origin; nunca lê o cookie de sessão
+    router
+      .group(() => {
+        router.get('restaurants/:slug', [controllers.PublicMenu, 'show'])
+      })
+      .prefix('public')
+
     // Administração da plataforma (platform_admin)
     router
       .group(() => {
