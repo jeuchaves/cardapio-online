@@ -1,0 +1,62 @@
+# Cardápio Digital
+
+Sistema multi-tenant de cardápio digital e pedidos simples para restaurantes de pequeno porte. As regras do projeto estão em [CLAUDE.md](CLAUDE.md); o plano, em [docs/ROADMAP.md](docs/ROADMAP.md); as decisões, em [docs/decisions/](docs/decisions/).
+
+## Pré-requisitos
+
+- Node.js 24 ou superior
+- pnpm 9.10 (`corepack enable` usa a versão do `package.json`)
+- Docker com Compose (para o PostgreSQL)
+
+## Primeira execução
+
+```bash
+pnpm install
+
+# Variáveis de ambiente (os .env não são versionados)
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Edite os arquivos copiados:
+
+- Troque `troque-esta-senha` por uma senha local, a **mesma** em `.env` (`POSTGRES_PASSWORD`) e em `apps/api/.env` (`DB_PASSWORD`).
+- Gere o `APP_KEY` da API com `node ace generate:key` dentro de `apps/api` (o comando grava a chave no `apps/api/.env`).
+- Se a porta 5432 já estiver em uso, mude `POSTGRES_PORT` no `.env` e `DB_PORT` em `apps/api/.env` para o mesmo valor (por exemplo, 5433).
+
+```bash
+docker compose up -d --wait postgres   # PostgreSQL 17 (o projeto exige 15 ou superior)
+pnpm dev:api                           # API em http://localhost:3333
+pnpm dev:web                           # Web em http://localhost:3000
+```
+
+Verificação: abra http://localhost:3000 (deve mostrar "API disponível") ou rode `curl http://localhost:3000/api/v1/health`, que responde `{"data":{"status":"ok"}}`. Sem banco, a resposta é `503`.
+
+O banco de testes (`cardapio_test`) é criado só na primeira inicialização do volume. Se o volume já existia, crie-o com:
+
+```bash
+docker compose exec postgres psql -U cardapio -d cardapio_dev -c "CREATE DATABASE cardapio_test"
+```
+
+## Comandos
+
+Na raiz:
+
+| Comando | O que faz |
+| --- | --- |
+| `pnpm lint` | ESLint nas duas apps |
+| `pnpm typecheck` | TypeScript nas duas apps |
+| `pnpm test` | Testes da API (Japa); exige o PostgreSQL ativo |
+| `pnpm build` | Build das duas apps |
+| `pnpm format` | Prettier na API |
+
+## Estrutura
+
+```
+apps/api     AdonisJS (API REST em /api/v1)
+apps/web     Next.js (App Router, Tailwind, shadcn/ui)
+docs/        ROADMAP e decisões (ADRs)
+```
+
+O navegador usa sempre a mesma origem: o Next.js encaminha `/api/*` para a API (em produção, o Nginx fará isso). Por isso não há CORS.

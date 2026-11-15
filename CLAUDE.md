@@ -112,7 +112,7 @@ Criar apenas os módulos e pastas que já tenham uso real.
 
 - Obrigatórios: isolamento entre tenants (leitura, alteração, exclusão), cálculo de pedido no backend, transições de status, autenticação/autorização das rotas.
 - Playwright somente para o fluxo principal: abrir cardápio, montar carrinho, enviar pedido, restaurante atualizar status.
-- Antes de concluir qualquer tarefa: lint, typecheck e testes passam. Comandos exatos a registrar aqui quando o scaffold existir.
+- Antes de concluir qualquer tarefa: lint, typecheck e testes passam. Comandos (na raiz, com o PostgreSQL ativo via `docker compose up -d --wait postgres`): `pnpm lint`, `pnpm typecheck` e `pnpm test`. Detalhes de execução no `README.md`.
 - Antes de produção: nenhum teste de isolamento falhando, backup do banco testado com restauração, logs sem dados sensíveis.
 
 ## 13. Ordem de execução (incremental)
