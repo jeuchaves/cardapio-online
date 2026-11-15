@@ -1,0 +1,204 @@
+{
+  "metric": "trigger accuracy (claude -p Skill tool mentions agentic-review-handoff; 1 run/query)",
+  "eval_set": "skills/agentic-review-handoff/evals/trigger-eval.json (10 positive + 10 negative)",
+  "public_claim": {
+    "do_not_advertise": "auto-trigger 100% accuracy / full 20/20 acceptance on current description",
+    "current_description": {
+      "version": "3.3.4",
+      "chars": 664,
+      "note": "routing-only slim (~1023→664); copy-edit negative restored vs v3.3.3"
+    },
+    "latest_skill_only": {
+      "description_version_measured": "3.3.3",
+      "positives": "10/10 scenarios, 29/30 hits",
+      "negatives": "UNVERIFIED (Claude session limit 429) — not acceptance",
+      "v3_3_4_remeasure": "NOT_RUN_quota"
+    },
+    "how_to_introduce": "Say: auto-trigger is strong on positive review/handoff intents under Skill-only remeasure (10/10, 29/30); negative-case non-trigger and v3.3.4 are not fully re-verified yet. Prefer explicit skill invoke when accuracy matters."
+  },
+  "baseline_old_description": {
+    "pass": "15/20",
+    "rate": 0.75,
+    "pos": "6/10",
+    "neg": "9/10",
+    "source": "git HEAD description (v3.1.0 auto-loop text, 945 chars)"
+  },
+  "final_description": {
+    "pass": "19/20",
+    "rate": 0.95,
+    "pos": "9/10",
+    "neg": "10/10",
+    "chars": 952,
+    "constraints": "ASCII-only, <=1024 for quick_validate"
+  },
+  "delta": "+20 percentage points (75% -> 95%); positives +3; negatives +1",
+  "remaining_miss": "pos-first-principles-deep (DDD/first-principles without auto-loop keywords)",
+  "coverage": [
+    "auto loop / review-fix-re-review zero human",
+    "same-session dual-AI closed loop",
+    "consult",
+    "sessions resume commands",
+    "packet continue / PWC fix-it",
+    "second pair of eyes + feedback validation",
+    "negatives: ordinary impl, non-git, weekly-report, /codex:review, Grok /review"
+  ],
+  "v3_1_2_codex_round": {
+    "description_source": "Codex advisory proposal (session 019f88cc-6118-7170-8a3f-9d3b562980f6), applied 2026-07-22",
+    "change": "first-principles/DDD/high-cohesion/low-coupling promoted to capability summary + first Use-when branch; added low-coupling keyword and non-review design docs guard",
+    "verification": "targeted re-eval, 3 queries, 1 run/query, claude -p --max-turns 2 stream-json Skill tool_use check, runtime copy synced via skills:install:local first",
+    "results": {
+      "pos-first-principles-deep": "PASS (was the only v3.1.1 failure)",
+      "neg-design-doc": "PASS",
+      "neg-ordinary-impl": "PASS"
+    },
+    "caveat": "remaining 17 queries not re-run (keywords preserved superset of v3.1.1); measurement pitfall recorded: claude -p reads .agents/skills runtime copy, always sync before measuring",
+    "chars": 991
+  },
+  "v3_2_1_t2_trigger_surface": {
+    "at": "2026-07-22T08:55:56.245897+00:00",
+    "method": "pnpm skills:install:local first; claude -p --max-turns 2 stream-json Skill/Read tool_use contains agentic-review-handoff; props only under /tmp",
+    "queries": [
+      {
+        "id": "pos-ordinary-review-auto",
+        "query": "Please review the uncommitted cart-handler changes in my git repo at ~/coding/payment-svc — second pair of eyes, find real bugs, prefer auto loop with headless codex.",
+        "should_trigger": true,
+        "triggered": true,
+        "pass": true
+      },
+      {
+        "id": "pos-feedback-validation",
+        "query": "Team pasted review feedback claiming auth.ts returns 500 on empty token. Validate each claim as a defect report before any fix; use classic feedback validation packet if needed.",
+        "should_trigger": true,
+        "triggered": true,
+        "pass": true
+      },
+      {
+        "id": "neg-ordinary-impl",
+        "query": "Add a React LoginForm with Zod email/password validation under apps/web and commit it. No review packet.",
+        "should_trigger": false,
+        "triggered": false,
+        "pass": true
+      }
+    ],
+    "summary": {
+      "passed": 3,
+      "total": 3
+    },
+    "note": "description retuned to promote feedback validation in Use-when (first directed run undertriggered it)",
+    "method_note": "SUPERSEDED for metric comparison: used Skill/Read. See v3_2_2_t2_skill_only_remeasure."
+  },
+  "v3_2_2_t2_skill_only_remeasure": {
+    "at": "2026-07-22T09:12:44.432962+00:00",
+    "method": "pnpm skills:install:local first; claude -p --max-turns 2 stream-json; hit = Skill tool_use input contains agentic-review-handoff (NOT Read); props only under /tmp",
+    "metric_alignment": "matches root metric: Skill tool only",
+    "queries": [
+      {
+        "id": "pos-ordinary-review-auto",
+        "query": "Please review the uncommitted cart-handler changes in my git repo at ~/coding/payment-svc — second pair of eyes, find real bugs, prefer auto loop with headless codex.",
+        "should_trigger": true,
+        "triggered": true,
+        "pass": true
+      },
+      {
+        "id": "pos-feedback-validation",
+        "query": "Team pasted review feedback claiming auth.ts returns 500 on empty token. Validate each claim as a defect report before any fix; use classic feedback validation packet if needed.",
+        "should_trigger": true,
+        "triggered": false,
+        "pass": false,
+        "variance_probe": {
+          "note": "primary 1-run measurement did not trigger; two additional identical runs recorded for variance transparency (methodology unchanged: headline = run 1)",
+          "runs": [
+            "run1: not triggered (headline)",
+            "run2: triggered (Skill tool_use captured)",
+            "run3: not triggered"
+          ]
+        }
+      },
+      {
+        "id": "neg-ordinary-impl",
+        "query": "Add a React LoginForm with Zod email/password validation under apps/web and commit it. No review packet.",
+        "should_trigger": false,
+        "triggered": false,
+        "pass": true
+      }
+    ],
+    "summary": {
+      "passed": 2,
+      "total": 3
+    },
+    "passed": "2/3"
+  },
+  "v3_3_4_copyedit_neg_and_maintainer_slim": {
+    "at": "2026-07-23",
+    "change": "restore description negative 'copy-editing review comments'; collapse Maintainer-only section into Fast Path one-liner (Codex consult APPROVE_WITH_CHANGES; Claude 429)",
+    "description_chars": 664,
+    "description_version": "3.3.4",
+    "not_changed": "classic prompt-only; codex|grok|claude CLI coupling; Fast Path bilingual (design tradeoffs)",
+    "remeasure_status": "NOT_RUN_quota",
+    "note": "Negatives still need post-quota Skill-only remeasure; copy-edit phrase is low-cost near-miss guard."
+  },
+  "v3_3_3_description_slim": {
+    "at": "2026-07-23T04:27:00Z",
+    "change": "description slimmed ~1023→634 chars (routing only); dual-window/migration removed from description; body T8 collapsed to Fast Path one-liner; maintainer gate pointer kept",
+    "description_chars": 634,
+    "description_version": "3.3.3",
+    "consult": {
+      "codex": "APPROVE_WITH_CHANGES — target 600-700; keep feedback validation first; drop dual-window from description",
+      "claude": "APPROVE_WITH_CHANGES — keep PASS_WITH_CONCERNS + Review Intake; keep maintainer gate in body; T8 one line"
+    },
+    "skill_creator_stock_run_eval": {
+      "status": "INVALID_METHODOLOGY",
+      "detail": "python -m scripts.run_eval injects temp .claude/commands/<name>-skill-<uuid>.md and only counts hits on that UUID name. With agentic-review-handoff already installed, Claude invokes the real skill name → all 10 positives false-negative (0/20 headline). Do not use stock run_eval for this skill without adapter.",
+      "result_headline": "10/20 (all negatives pass-by-not-triggering; all positives fail)"
+    },
+    "skill_only_remeasure": {
+      "status": "PARTIAL",
+      "method": "custom runner agentic-review-handoff-workspace/trigger-v3.3.3/run_trigger_skill_only.py; claude -p --max-turns 2 stream-json; hit = Skill tool mentions agentic-review-handoff; 3 runs/query; 2 workers; pnpm skills:install:local first",
+      "metric_alignment": "matches historical Skill-only metric (NOT skill-creator temp command UUID)",
+      "results_file": "agentic-review-handoff-workspace/trigger-v3.3.3/results-3x20.json",
+      "positives": {
+        "passed": "10/10",
+        "run_hits": "29/30",
+        "note": "threshold 0.5; only pos-consult was 2/3 (one miss). feedback-validation 3/3 (improved vs historical flaky).",
+        "per_query_triggers": {
+          "pos-auto-loop-zh": "3/3",
+          "pos-dual-ai-session": "3/3",
+          "pos-review-fix-rereview": "3/3",
+          "pos-consult": "2/3",
+          "pos-sessions-resume": "3/3",
+          "pos-second-eyes-packet": "3/3",
+          "pos-continue-packet": "3/3",
+          "pos-pwc-fix-it": "3/3",
+          "pos-feedback-validate": "3/3",
+          "pos-first-principles-deep": "3/3"
+        }
+      },
+      "negatives": {
+        "status": "INVALID_BLOCKED_BY_CLAUDE_SESSION_LIMIT",
+        "detail": "All 30 negative runs returned session limit (resets 4:40pm Asia/Singapore). 0/30 Skill hits is consistent with quota failure, NOT proof of non-trigger. Do not cite 10/10 neg as acceptance."
+      },
+      "headline": {
+        "pos": "10/10 pass (29/30 hits)",
+        "neg": "UNVERIFIED (429 session limit)",
+        "overall": "NOT full 20/20 acceptance — positives good; negatives need re-run after quota"
+      }
+    },
+    "remeasure_status": "PARTIAL_POS_OK_NEG_429",
+    "t2_acceptance": "Positives MET for v3.3.3 slim description under Skill-only 3-run threshold. Negatives NOT MET (quota). Re-run negatives after Claude session limit resets."
+  },
+  "v3_2_3_description_fix_headline": {
+    "at": "2026-07-22T09:43:38.469069+00:00",
+    "change": "feedback validation promoted to first Use-when clause of description (version 3.2.3); mirrors synced via pnpm skills:install:local + rsync to ~/.agents/skills (global install target)",
+    "method_attempted": "pnpm skills:install:local + rsync global mirror; claude -p --max-turns 2 stream-json; hit = Skill tool_use only (NOT Read); 3 runs/query",
+    "metric_alignment": "Skill tool only (matches root metric)",
+    "remeasure_status": "BLOCKED_BY_CLAUDE_API_429",
+    "remeasure_detail": "claude -p returns is_error=true api_error_status=429: \"You've hit your session limit · resets 7:30pm (Asia/Singapore)\". All Skill-tool invocations currently return without tools; headline 1/3 is NOT valid evidence. Do not treat this as a description regression until a post-quota remeasure runs.",
+    "prior_valid_skill_only_evidence": {
+      "key": "v3_2_2_t2_skill_only_remeasure",
+      "note": "Historical only: v3_2_2 headline under max-turns 2 was 2/3 (feedback-validation flaky). No verified 3/3 Skill-only result exists for current v3.2.3 description; remeasure after Claude quota restores with max-turns 2."
+    },
+    "description_chars": 1023,
+    "description_version": "3.2.3",
+    "t2_acceptance": "NOT MET for v3.2.3 until a non-429 Skill-only, max-turns 2, 3-query run is recorded. Do not cite earlier Skill/Read or max-turns 5 runs as equivalent evidence."
+  }
+}

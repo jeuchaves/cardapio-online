@@ -1,0 +1,150 @@
+/**
+ * `review-loop sessions` — list recorded reviewer channel sessions and print
+ * copy-ready resume commands per product (codex / grok / claude / pi).
+ *
+ * Read-only: scans `.review-handoff/runtime/<branch>/<packet>/reviewer-session.json`
+ * written by the adapter bookkeeping (T1). Command forms verified 2026-07-22:
+ *   codex  interactive `codex resume <id>` / headless `codex exec resume <id> "<prompt>"`
+ *   claude interactive `claude --resume <id>` / headless `claude -p --resume <id> "<prompt>"`
+ *   grok   interactive `grok -r <id>` / headless `grok -r <id> -p "<prompt>"`
+ *   pi     interactive `pi --session-id <id>` / headless `pi -p --session-id <id> "<prompt>"`
+ * Note: Codex Desktop's session list hides `codex_exec`-originated sessions —
+ * the resume commands below are the reliable way back in.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { resolveRepoRoot } from "./repositories.mjs";
+import {
+  assertLauncherMatchesProduct,
+  assertLauncherName,
+} from "./adapters.mjs";
+
+const PROMPT_PLACEHOLDER = "<prompt>";
+
+// `cmd` is the account launcher recorded with the session (grok002, ...);
+// resuming through a different account cannot find the session.
+const RESUME_FORMS = {
+  codex: (id, cmd = "codex") => ({
+    interactive: `${cmd} resume ${id}`,
+    headless: `${cmd} exec resume ${id} "${PROMPT_PLACEHOLDER}"`,
+  }),
+  claude: (id, cmd = "claude") => ({
+    interactive: `${cmd} --resume ${id}`,
+    headless: `${cmd} -p --resume ${id} "${PROMPT_PLACEHOLDER}"`,
+  }),
+  grok: (id, cmd = "grok") => ({
+    interactive: `${cmd} -r ${id}`,
+    headless: `${cmd} -r ${id} -p "${PROMPT_PLACEHOLDER}"`,
+  }),
+  pi: (id, cmd = "pi") => ({
+    interactive: `${cmd} --session-id ${id}`,
+    headless: `${cmd} -p --session-id ${id} "${PROMPT_PLACEHOLDER}"`,
+  }),
+};
+
+/**
+ * @param {{ cwd?: string, repoRoot?: string, product?: string }} opts
+ */
+export function cmdSessions(opts = {}) {
+  const repoRoot = opts.repoRoot || resolveRepoRoot(opts.cwd || process.cwd());
+  const runtimeDir = path.join(repoRoot, ".review-handoff", "runtime");
+  /** @type {Array<Record<string, unknown>>} */
+  const sessions = [];
+
+  /**
+   * @param {string} file
+   * @param {Record<string, unknown>} where packetId or consultRecord
+   */
+  const addRow = (file, where) => {
+    let record;
+    try {
+      record = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      return; // unreadable bookkeeping is not this command's failure
+    }
+    const { product, sessionId, updated, command } = record ?? {};
+    if (!product || !sessionId) return;
+    if (opts.product && opts.product !== product) return;
+    const forms = RESUME_FORMS[product];
+    // Rows become copy-paste commands; never echo a tampered launcher string.
+    let launcherOk = true;
+    if (command != null) {
+      try {
+        assertLauncherName(command);
+        assertLauncherMatchesProduct(command, product);
+      } catch {
+        launcherOk = false;
+      }
+    }
+    if (!launcherOk) {
+      sessions.push({
+        ...where,
+        product,
+        sessionId,
+        updated: updated ?? null,
+        resume: {
+          interactive: null,
+          headless: null,
+          note: "invalid launcher name in session record",
+        },
+      });
+      return;
+    }
+    sessions.push({
+      ...where,
+      product,
+      ...(command ? { command } : {}),
+      sessionId,
+      updated: updated ?? null,
+      resume: forms
+        ? forms(sessionId, command || undefined)
+        : {
+            interactive: null,
+            headless: null,
+            note: `unknown product "${product}"`,
+          },
+    });
+  };
+
+  const consultsDir = path.join(runtimeDir, "consults");
+  if (fs.existsSync(consultsDir)) {
+    for (const name of fs.readdirSync(consultsDir)) {
+      if (!name.endsWith(".session.json")) continue;
+      addRow(path.join(consultsDir, name), {
+        packetId: null,
+        consultRecord: path.join(
+          consultsDir,
+          name.replace(/\.session\.json$/, ".md"),
+        ),
+      });
+    }
+  }
+
+  if (fs.existsSync(runtimeDir)) {
+    for (const branch of fs.readdirSync(runtimeDir, { withFileTypes: true })) {
+      if (!branch.isDirectory() || branch.name === "consults") continue;
+      const branchDir = path.join(runtimeDir, branch.name);
+      for (const packet of fs.readdirSync(branchDir, { withFileTypes: true })) {
+        if (!packet.isDirectory()) continue;
+        const file = path.join(branchDir, packet.name, "reviewer-session.json");
+        if (!fs.existsSync(file)) continue;
+        addRow(file, { packetId: `${branch.name}/${packet.name}` });
+      }
+    }
+  }
+
+  sessions.sort((a, b) =>
+    String(b.updated ?? "").localeCompare(String(a.updated ?? "")),
+  );
+
+  return {
+    ok: true,
+    repoRoot,
+    count: sessions.length,
+    sessions,
+    note:
+      sessions.length === 0
+        ? "No reviewer or consult sessions recorded yet"
+        : `Replace ${PROMPT_PLACEHOLDER} with your follow-up question for headless form`,
+  };
+}
