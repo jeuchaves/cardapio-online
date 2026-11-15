@@ -636,10 +636,10 @@ Prefixo `/api/v1`. Sucesso: `{ "data": ..., "meta"?: ... }`. Erro: `{ "code", "m
 | --- | --- |
 | `GET /platform/restaurants` | Lista. **Parâmetros:** `page`, `per_page`, `search`, `is_active`. **Resposta:** `200 { data: [{ id, name, slug, is_active, created_at }], meta: { page, per_page, total } }`. Sem dados de pedidos nem de clientes. |
 | `POST /platform/restaurants` | Cadastra restaurante e seu `owner`. **Entrada:** `{ name, slug, description?, phone?, owner: { name, email }, confirm_link_existing_user?: boolean }`. **Comportamento:** e-mail novo cria usuário com senha temporária e `must_change_password = true`; e-mail existente só vincula se `confirm_link_existing_user = true`, sem alterar senha nem dados do usuário. Tudo em uma transação. **Resposta:** `201 { data: { restaurant, owner: { id, name, email, temporary_password? } } }`; `temporary_password` só existe para usuário novo, aparece **somente nesta resposta** e com `Cache-Control: no-store`. **Erros:** `409 SLUG_TAKEN`, `409 EMAIL_TAKEN` (e-mail existente sem confirmação), `422`. Gera log de auditoria sem a senha. |
-| `GET /platform/restaurants/:id` | Detalhe. **Erros:** `404`. |
+| `GET /platform/restaurants/:id` | Detalhe do restaurante (`id, name, slug, description, phone, is_active, ...`), sem dados pessoais de usuários (APR-04). **Erros:** `404`. |
 | `PATCH /platform/restaurants/:id` | Edita nome, slug, descrição e telefone. Alterar o slug invalida links e QR Codes já impressos: exige `confirm_slug_change: true`. **Erros:** `409 SLUG_TAKEN`. |
 | `PATCH /platform/restaurants/:id/status` | Ativa ou desativa. **Entrada:** `{ is_active: boolean }`. `200`. |
-| `POST /platform/restaurants/:id/owner/reset-password` | Gera nova senha temporária para o `owner` informado, pelo mesmo mecanismo da seção 5.2 (`must_change_password = true`, exibição única). **Entrada:** `{ user_id }`. Não há recuperação de senha por e-mail. |
+| `POST /platform/restaurants/:id/owner/reset-password` | Gera nova senha temporária para o `owner` do restaurante, pelo mesmo mecanismo da seção 5.2 (`must_change_password = true`, exibição única). **Entrada:** nenhuma; o backend identifica o `owner` e a plataforma não recebe seus dados pessoais (APR-04). **Resposta:** `200 { data: { temporary_password } }` com `Cache-Control: no-store`. Revoga todas as sessões do usuário (D11). **Erros:** `404` (sem owner), `409 MULTIPLE_OWNERS`. Não há recuperação de senha por e-mail. |
 
 ### 8.3 Administração do restaurante (`/tenant/:restaurantId`)
 

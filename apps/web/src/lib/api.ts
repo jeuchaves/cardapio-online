@@ -1,0 +1,81 @@
+// Único ponto de chamada à API. Mesma origem: o navegador envia o cookie de sessão
+// e o header Origin sozinho (ADR 0002), sem CORS.
+
+export type FieldError = { field?: string; message: string };
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly details?: FieldError[],
+  ) {
+    super(message);
+  }
+}
+
+export async function api<T = undefined>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+): Promise<T> {
+  const hasBody = init.body !== undefined;
+  const response = await fetch(`/api/v1${path}`, {
+    method: init.method ?? "GET",
+    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+    body: hasBody ? JSON.stringify(init.body) : undefined,
+    cache: "no-store",
+  });
+
+  if (response.status === 204) return undefined as T;
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      payload?.code ?? "UNKNOWN",
+      payload?.message ?? "Erro inesperado. Tente novamente.",
+      Array.isArray(payload?.details) ? payload.details : undefined,
+    );
+  }
+  return payload as T;
+}
+
+export type Role = "owner" | "staff";
+
+export type SessionUser = {
+  id: string;
+  name: string;
+  email: string;
+  is_platform_admin: boolean;
+  must_change_password: boolean;
+};
+
+export type SessionRestaurant = {
+  id: string;
+  name: string;
+  slug: string;
+  role: Role;
+};
+
+export type Me = { user: SessionUser; restaurants: SessionRestaurant[] };
+
+export type RestaurantData = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  phone: string | null;
+  is_active: boolean;
+  accepts_dine_in: boolean;
+  accepts_pickup: boolean;
+  accepts_cash: boolean;
+  accepts_card: boolean;
+  accepts_pix: boolean;
+};
+
+export type StaffMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  is_active: boolean;
+};

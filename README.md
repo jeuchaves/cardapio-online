@@ -39,6 +39,27 @@ O banco de testes (`cardapio_test`) é criado só na primeira inicialização do
 docker compose exec postgres psql -U cardapio -d cardapio_dev -c "CREATE DATABASE cardapio_test"
 ```
 
+## Login e administrador da plataforma (Fase 2)
+
+Com o Postgres ativo, em `apps/api`:
+
+```bash
+node ace migration:run          # cria users, restaurants, restaurant_users e sessions
+node ace create:platform-admin  # pede nome, e-mail e senha (10 a 128 caracteres)
+```
+
+- `APP_URL` em `apps/api/.env` deve ser exatamente `http://localhost:3000` (origem do navegador; é validada contra o cabeçalho `Origin` nas requisições que alteram estado). Variáveis opcionais de sessão e rate limit estão comentadas no `.env.example` (ver ADR 0002 e 0004).
+- O restaurante é cadastrado pelo administrador em `/plataforma/restaurantes`; a senha temporária do dono aparece **uma única vez** e o primeiro login exige trocá-la.
+
+### Verificação manual guiada do login (D9)
+
+1. Abra http://localhost:3000/entrar e entre como administrador: deve ir para `/plataforma/restaurantes`.
+2. Cadastre um restaurante (slug e dono); copie a senha temporária exibida.
+3. Saia, entre como o dono com a senha temporária: deve ser levado a `/conta/senha`; troque a senha e confirme que cai em `/painel`.
+4. Em `/painel/<id>/equipe`, crie um atendente e entre com ele: não deve ver Equipe nem alterar configurações.
+5. Erre a senha 6 vezes seguidas com o mesmo e-mail: a 6ª tentativa deve responder "muitas tentativas" (429).
+6. Saia e use o botão Voltar: o painel não deve reaparecer com dados (a sessão foi revogada).
+
 ## Comandos
 
 Na raiz:

@@ -29,4 +29,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string(),
   DB_DATABASE: Env.schema.string(),
+
+  // Sessão (ADR 0002). Padrões: cookie cardapio_session, 2h de inatividade, 12h absolutas
+  SESSION_COOKIE_NAME: Env.schema.string.optional(),
+  SESSION_IDLE_TIMEOUT: Env.schema.string.optional(),
+  SESSION_ABSOLUTE_HOURS: Env.schema.number.optional(),
+
+  // Rate limit por minuto (ADR 0004). Padrões: 5, 20 e 5
+  LIMITER_LOGIN_IP_EMAIL_PER_MINUTE: Env.schema.number.optional(),
+  LIMITER_LOGIN_IP_PER_MINUTE: Env.schema.number.optional(),
+  LIMITER_PASSWORD_PER_MINUTE: Env.schema.number.optional(),
 })

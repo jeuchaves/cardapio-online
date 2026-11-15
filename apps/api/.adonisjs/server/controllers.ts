@@ -4,5 +4,9 @@
  */
 
 export const controllers = {
+  Auth: () => import('#controllers/auth_controller'),
   Health: () => import('#controllers/health_controller'),
+  PlatformRestaurants: () => import('#controllers/platform_restaurants_controller'),
+  Staff: () => import('#controllers/staff_controller'),
+  TenantRestaurant: () => import('#controllers/tenant_restaurant_controller'),
 }

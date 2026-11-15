@@ -104,7 +104,7 @@ Um middleware próprio, simples e explícito, é aplicado a **todo método que a
 13. O login sem `Origin` válido responde `403` (*login CSRF*).
 14. Métodos seguros (`GET`) não exigem `Origin`.
 15. Teste de tabela de rotas: toda rota que altera estado, fora de `/public`, tem o middleware; o teste falha se uma rota nova ficar sem ele.
-16. Rotas de `/public` não leem o cookie de sessão: uma requisição com cookie de sessão válido é tratada exatamente como sem cookie.
+16. Rotas de `/public` não leem o cookie de sessão: uma requisição com cookie de sessão válido é tratada exatamente como sem cookie. **Pendente para a Fase 4:** ainda não há rotas `/public`; o teste só pode ser feito quando a primeira existir (o health check não o comprova).
 
 **Rate limit**
 17. Login excedendo 5 tentativas por minuto por IP e identificador responde `429`; o contador é reiniciado ao reiniciar o processo (comportamento documentado).
@@ -124,3 +124,14 @@ Um middleware próprio, simples e explícito, é aplicado a **todo método que a
 - Em desenvolvimento, `APP_URL` precisa coincidir exatamente com a origem do Next.js. O `.env.example` documentará isso.
 - Clientes que não são navegadores (por exemplo `curl` e testes automatizados) precisam enviar `Origin` nas rotas protegidas. Os testes Japa farão isso.
 - Se o pacote de sessão do AdonisJS não oferecer algum requisito acima (por exemplo, revogar todas as sessões de um usuário), a lacuna será resolvida em F2-T3 com o menor código possível e registrada em adendo a este ADR.
+
+## Adendo (2026-11-15): achados técnicos da Fase 2
+
+Registrados após ler o código de `@adonisjs/auth` 10.1.0 e `@adonisjs/session` 8.3.0. Não alteram nenhuma decisão acima; apenas detalham como cumpri-las.
+
+1. **Logout invalida a sessão no servidor.** O `logout()` do guard só executa `session.forget('auth_web')`. Como a sessão guarda também `login_at`, ela não ficaria vazia e a linha continuaria válida. O logout deve esquecer `auth_web` e `login_at` e remover a etiqueta de usuário, para que a linha seja apagada ao fim da requisição.
+2. **Reaplicar a etiqueta após regenerar o id.** `regenerate()` migra os dados, mas não preserva `sessions.user_id`. Depois do login e da troca de senha, a sessão é etiquetada de novo; sem isso, `tagged()` não a encontra.
+3. **Sessão e autenticação por grupo de rotas, sem middleware global.** O grupo `/public` não registra sessão nem autenticação (teste 16). Os grupos `/auth`, `/tenant` e `/platform` registram sessão, limite absoluto, autenticação e `Origin`.
+4. **Middleware próprio para o limite absoluto de 12 horas.** O driver só oferece a expiração por inatividade.
+5. **Toda requisição autenticada renova a inatividade**, inclusive `GET /auth/me`. O frontend não deve fazer polling em segundo plano.
+6. **Origem de desenvolvimento exata.** `APP_URL` deve ser `http://localhost:3000`; abrir o painel por `http://127.0.0.1:3000` responde `403` na validação de `Origin`.

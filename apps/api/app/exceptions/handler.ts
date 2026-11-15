@@ -1,28 +1,65 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
+import ApiError from '#exceptions/api_error'
+
+type KnownError = { code?: string; status?: number; messages?: unknown; response?: unknown }
 
 export default class HttpExceptionHandler extends ExceptionHandler {
-  /**
-   * In debug mode, the exception handler will display verbose errors
-   * with pretty printed stack traces.
-   */
   protected debug = !app.inProduction
 
   /**
-   * The method is used for handling errors and returning
-   * response to the client
+   * Todo erro sai no formato { code, message, details? }, sem detalhes internos.
    */
   async handle(error: unknown, ctx: HttpContext) {
-    return super.handle(error, ctx)
+    const { response } = ctx
+    const known = (error ?? {}) as KnownError
+
+    if (error instanceof ApiError) {
+      return response.status(error.status).send({
+        code: error.code,
+        message: error.message,
+        ...(error.details === undefined ? {} : { details: error.details }),
+      })
+    }
+
+    switch (known.code) {
+      case 'E_VALIDATION_ERROR':
+        return response.status(422).send({
+          code: 'VALIDATION_ERROR',
+          message: 'Dados inválidos.',
+          details: known.messages,
+        })
+      case 'E_UNAUTHORIZED_ACCESS':
+        return response.status(401).send(toBody(ApiError.unauthenticated()))
+      case 'E_ROUTE_NOT_FOUND':
+      case 'E_ROW_NOT_FOUND':
+        return response.status(404).send(toBody(ApiError.notFound()))
+      case 'E_TOO_MANY_REQUESTS': {
+        const availableIn = (known.response as { availableIn?: number } | undefined)?.availableIn
+        if (availableIn) response.header('Retry-After', String(availableIn))
+        return response.status(429).send({
+          code: 'RATE_LIMITED',
+          message: 'Muitas tentativas. Aguarde um momento e tente novamente.',
+        })
+      }
+    }
+
+    if (typeof known.status === 'number' && known.status >= 400 && known.status < 500) {
+      return response
+        .status(known.status)
+        .send({ code: 'BAD_REQUEST', message: 'Requisição inválida.' })
+    }
+
+    return response
+      .status(500)
+      .send({ code: 'INTERNAL_ERROR', message: 'Erro interno. Tente novamente mais tarde.' })
   }
 
-  /**
-   * The method is used to report error to the logging service or
-   * the a third party error monitoring service.
-   *
-   * @note You should not attempt to send a response from this method.
-   */
   async report(error: unknown, ctx: HttpContext) {
     return super.report(error, ctx)
   }
+}
+
+function toBody(error: ApiError) {
+  return { code: error.code, message: error.message }
 }
