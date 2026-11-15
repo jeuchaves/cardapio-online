@@ -1,0 +1,40 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Variáveis de ambiente (apenas o exemplo é versionado)
+.env
+.env.*
+!.env.example
+
+# Build e artefatos
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# AdonisJS: temporários e uploads locais de desenvolvimento
+tmp/
+apps/api/storage/
+
+# Testes e cobertura
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker: dados locais do Compose
+docker-compose.override.yml
+pgdata/
+
+# Ambiente local e sistema operacional
+.idea/
+.claude/settings.local.json
+.DS_Store
+Thumbs.db

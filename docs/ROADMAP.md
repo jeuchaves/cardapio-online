@@ -26,7 +26,7 @@ Sistema multi-tenant de cardápio digital e pedidos simples para restaurantes de
 
 **Fora do MVP** (só com necessidade funcional comprovada, decisão explícita do usuário e ADR curto): **entrega (delivery)**, pagamento online e gateways, planos, assinaturas e cobrança, recuperação de senha por e-mail, Redis, filas e workers, Outbox, RLS, microsserviços, GraphQL, Kubernetes, relatórios avançados, fidelidade, integrações externas de delivery, notificações externas.
 
-**Regra de dependências:** antes de adicionar dependência, camada ou tecnologia, verificar se a stack existente resolve. Cada dependência nova exige justificativa em ADR curto (`docs/decisions/`). Dependências já aprovadas além da stack base: `big.js` (cálculo monetário no backend) e `qrcode` (QR Code no frontend), além do driver S3 para imagens em produção.
+**Regra de dependências:** antes de adicionar dependência, camada ou tecnologia, verificar se a stack existente resolve. Cada dependência nova exige justificativa em ADR curto (`docs/decisions/`). Dependências já aprovadas além da stack base: `big.js` (cálculo monetário no backend) e `qrcode` (QR Code no frontend), além do driver S3 para imagens em produção e dos pacotes oficiais do AdonisJS `@adonisjs/auth` e `@adonisjs/session` (driver `database`), instalados na Fase 2 (F2-T1 e F2-T3).
 
 ## 2. Perfis e funcionalidades
 
@@ -35,7 +35,7 @@ Sistema multi-tenant de cardápio digital e pedidos simples para restaurantes de
 | Administrador da plataforma (`platform_admin`) | Autenticar-se; cadastrar, editar, consultar e ativar/desativar restaurantes; criar o `owner` inicial ou vincular um usuário existente como `owner`. Sem planos, assinaturas ou cobrança. **Sem acesso a pedidos nem a dados pessoais dos clientes.** |
 | Dono do restaurante (`owner`) | Tudo que o `staff` faz, mais: editar dados e configurações do restaurante; criar e desativar `staff`; gerenciar mesas e QR Codes; excluir ou desativar categorias, produtos e adicionais. |
 | Equipe (`staff`) | Consultar cardápio e pedidos; atualizar o status dos pedidos; criar e editar categorias, produtos e adicionais (sem excluir nem desativar). |
-| Cliente (sem conta) | Acessar o cardápio por URL; ver categorias, produtos, imagens, descrições e preços; escolher produtos, adicionais e quantidade; montar o carrinho; informar nome e, quando exigido, telefone; escolher modalidade e forma de pagamento habilitadas; enviar o pedido; acompanhar o próprio pedido pelo token. Não cancela pedido. Não acessa pedidos de terceiros. |
+| Cliente (sem conta) | Acessar o cardápio por URL; ver categorias, produtos, imagens, descrições e preços; escolher produtos, adicionais e quantidade; montar o carrinho e ver o total cotado pelo backend (seção 5.9); informar nome e, quando exigido, telefone; escolher modalidade e forma de pagamento habilitadas; enviar o pedido; acompanhar o próprio pedido pelo token. Não cancela pedido. Não acessa pedidos de terceiros. |
 
 ## 3. Arquitetura
 
@@ -54,11 +54,11 @@ Sistema multi-tenant de cardápio digital e pedidos simples para restaurantes de
 
 ### 4.1 Convenções
 
-- PK `uuid` (`gen_random_uuid()`), exceto a tabela de junção `product_product_addons`.
+- PK `uuid` (`gen_random_uuid()`), exceto a tabela de junção `product_product_addons` e a tabela de infraestrutura `sessions` (PK `string` gerada pelo `@adonisjs/session`).
 - Datas `timestamptz`; `created_at` e `updated_at` com `default now()` (`order_status_history`, `order_items` e `order_item_addons` só têm `created_at`).
 - Dinheiro: `NUMERIC(10,2)` e `CHECK (>= 0)`. No backend, **`big.js`** para todos os cálculos. Valores trafegam como string decimal. Nunca `float` nem `number` em cálculos.
 - Domínios fechados (`role`, `status`, modalidades, métodos) usam `text` + `CHECK`, mais simples de evoluir que enum nativo.
-- Toda tabela de dados de restaurante tem `restaurant_id NOT NULL`. Tabelas que são alvo de FK composta têm `UNIQUE (id, restaurant_id)`.
+- Toda tabela de dados de restaurante tem `restaurant_id NOT NULL`. Tabelas que são alvo de FK composta têm `UNIQUE (id, restaurant_id)`. **Exceção explícita:** `users` e `sessions` são tabelas de identidade e infraestrutura de autenticação, não guardam dados de restaurante e não têm `restaurant_id`.
 - Sem `deleted_at`: usa-se `is_active` ou `is_available`, onde há histórico a preservar.
 - Limites de tamanho de texto: seção 4.5, aplicados por `varchar(n)` ou `CHECK (char_length(...) <= n)` e pela validação da API.
 
@@ -67,6 +67,7 @@ Sistema multi-tenant de cardápio digital e pedidos simples para restaurantes de
 ```mermaid
 erDiagram
     users ||--o{ restaurant_users : "participa"
+    users |o..o{ sessions : "marcada por user_id (sem FK)"
     restaurants ||--o{ restaurant_users : "possui"
     restaurants ||--o{ categories : "possui"
     restaurants ||--o{ products : "possui"
@@ -88,6 +89,10 @@ erDiagram
         text email UK
         boolean is_platform_admin
         boolean must_change_password }
+    sessions { string id PK
+        text data
+        string user_id
+        timestamp expires_at }
     restaurants { uuid id PK
         text slug UK
         boolean is_active
@@ -162,6 +167,27 @@ Legenda: **NN** = `NOT NULL`. Toda FK "composta" inclui `restaurant_id`. Sem `ON
 | created_at, updated_at | timestamptz | NN |
 
 O papel `platform_admin` não pertence a restaurante, então fica em `users` e evita `restaurant_id` nulo em `restaurant_users`. Não há tabela de papéis nem de permissões: os papéis são fixos.
+
+#### `sessions` — sessões de login (infraestrutura; sem `restaurant_id`)
+
+Tabela do driver `database` oficial do `@adonisjs/session`, criada **com a migration gerada pelo próprio AdonisJS** (`node ace make:session-table`), sem armazenamento paralelo. A migration versionada em `apps/api` deve ser idêntica à gerada, salvo ajuste explícito registrado em ADR. Esquema verificado no código-fonte do pacote (v8.3.0, AdonisJS 7; ver a nota de versão abaixo):
+
+| Campo | Tipo | Regra |
+| --- | --- | --- |
+| id | string | PK; identificador da sessão (UUID v4 gerado pelo pacote), o mesmo valor do cookie |
+| data | text | NN; dados da sessão assinados pelo pacote (opcionalmente criptografados). Contém a identidade do usuário e `login_at` (ver abaixo) |
+| user_id | string | nulo; índice. Etiqueta de *session tagging*: guarda a **representação textual do UUID de `users.id`** (`String(user.id)`), formato exigido pelo pacote (o tipo `string` da coluna não casa com `uuid`). **Sem FK** para `users`, e usuários não são excluídos fisicamente |
+| expires_at | timestamp | NN; índice. Validade por inatividade, **deslizante** |
+
+Não há `created_at`, `last_activity_at` nem `restaurant_id`. **Estratégia real de expiração** (o driver não grava criação nem última atividade):
+
+- **Inatividade (2 horas, padrão):** o driver grava `expires_at = agora + age` em toda escrita ou `touch` ao fim de cada requisição que carrega a sessão. `read` recusa e apaga a sessão com `expires_at` vencido. O padrão de `age` do pacote já é 2 horas.
+- **Limite absoluto (12 horas):** o driver **não** o oferece. É validado no servidor por um middleware próprio e pequeno, que roda após a sessão e a autenticação: compara `agora − login_at` com o limite absoluto, sendo `login_at` gravado nos dados (assinados) da sessão no login e **nunca atualizado** por atividade nem pela rotação do identificador. Sessão sem `login_at`, ou vencida, é destruída e responde `401`.
+- **Limpeza:** leitura de sessão vencida a apaga, e o pacote faz coleta probabilística (padrão 2% das escritas). Sem job agendado.
+- **Revogação de outras sessões:** *session tagging* confirmado no driver `database` (`session.tag`, `session.untag`, `SessionCollection.tagged`, `SessionCollection.destroy`). Após o login, a sessão é etiquetada com o id do usuário (o login regenera o id, então a etiqueta vem depois).
+- Sem *remember me*: não há tokens de longa duração que reabram sessões revogadas.
+
+Nota de versão: a verificação foi feita contra `@adonisjs/session` 8.3.0 (peer: `@adonisjs/core` 7 e `@adonisjs/lucid` 22). Em F1-T2, conferir a versão do AdonisJS gerada pelo scaffold; se for outra, repetir esta verificação antes de F2-T1.
 
 #### `restaurants` — tenant
 
@@ -470,7 +496,7 @@ O cliente envia o header `Idempotency-Key` (UUID gerado pelo frontend para cada 
 5. Atribuir o número: `UPDATE restaurants SET next_order_number = next_order_number + 1 WHERE id = :id RETURNING next_order_number - 1`, de forma atômica. O valor lido é o `order_number` do pedido. Se a transação falhar, o rollback desfaz o incremento. `UNIQUE (restaurant_id, order_number)` é proteção adicional.
 6. Ler produtos, adicionais e (se `dine_in`) a mesa **filtrando por `restaurant_id`** e travando as linhas (`FOR SHARE`) até o commit.
 7. **Revalidar disponibilidade:** produto e adicional existem, pertencem ao restaurante, estão disponíveis, o adicional está associado ao produto, e a mesa está ativa. Falhou: rollback e `422`.
-8. Recalcular, com `big.js`, o subtotal de cada item = (preço do produto + soma dos adicionais) × quantidade, e `total` = soma dos subtotais. Qualquer valor monetário vindo do cliente é ignorado.
+8. Recalcular, com `big.js`, o subtotal de cada item = (preço do produto + soma dos adicionais) × quantidade, e `total` = soma dos subtotais. Qualquer valor monetário vindo do cliente é ignorado, **inclusive o total mostrado pela cotação (seção 5.9)**. O cálculo é o mesmo da cotação, em uma única função do módulo `orders`.
 9. Gravar `orders` (com `idempotency_key`, `idempotency_hash`, `order_number`, `table_name`), `order_items`, `order_item_addons` (snapshots de nome e preço) e a primeira linha de `order_status_history`.
 10. **Commit.** Somente depois do commit a API responde `201` com o `tracking_token`.
 11. **Corrida de requisições idênticas:** se duas requisições com a mesma chave chegarem juntas, a restrição `UNIQUE (restaurant_id, idempotency_key)` faz uma delas falhar no insert; ela reverte, relê o pedido vencedor, compara o hash e responde conforme o passo 3.
@@ -499,6 +525,16 @@ Sem filas, jobs, Outbox, Redis ou notificações externas: o restaurante vê o p
 - Excluir categoria com produtos é bloqueado (`409 CATEGORY_HAS_PRODUCTS`). Excluir produto, adicional ou mesa é permitido ao `owner`; pedidos antigos preservam o snapshot.
 - O `staff` não pode excluir nem alterar `is_active` ou `is_available`: a API responde `403`.
 
+### 5.9 Cotação do carrinho (sem pedido)
+
+O frontend não faz aritmética monetária (ADR 0001): o total do carrinho vem de uma cotação calculada pelo backend.
+
+- A cotação recebe os itens do carrinho e devolve, para cada item, nome, preço unitário, adicionais, subtotal e o total, todos calculados com `big.js` e devolvidos como **strings decimais** com duas casas.
+- A cotação **não cria pedido**, não consome `next_order_number`, não grava nada, não usa `Idempotency-Key`, não trava linhas (`FOR SHARE`) e **não reserva produto**. Também não emite token.
+- Ela é informativa e **sem garantia**: preço ou disponibilidade podem mudar antes do envio. O pedido **recalcula tudo na criação** (seção 5.5) e o total do pedido criado é o único oficial. Se o total do pedido diferir do cotado, a tela de confirmação mostra o valor devolvido pela criação.
+- Usa a mesma validação de produto, adicional e restaurante ativo da criação do pedido (seção 5.5, passos 1 e 7). Item indisponível, adicional não associado ou produto de outro restaurante responde `422 ITEM_UNAVAILABLE` com os ids afetados. A cotação não valida modalidade, pagamento, mesa nem dados do cliente.
+- Rota pública, sem cookie de sessão. Rate limit próprio (seção 6) e `Cache-Control: no-store`.
+
 ---
 
 ## 6. Segurança e isolamento
@@ -506,13 +542,16 @@ Sem filas, jobs, Outbox, Redis ou notificações externas: o restaurante vê o p
 | Controle | Implementação no MVP |
 | --- | --- |
 | Autenticação | Sessão por cookie (guard de sessão do AdonisJS). Login, logout e expiração. Senha com hash forte padrão do AdonisJS. Troca obrigatória no primeiro acesso (seção 5.2). |
+| Persistência da sessão | Sessão no servidor, na tabela `sessions` do driver `database` oficial do `@adonisjs/session` (seção 4.3). O cookie carrega só o identificador (UUID v4, gerado pelo pacote). Vínculo e perfil são consultados no banco a cada requisição. |
+| Expiração da sessão | Inatividade de 2 horas, deslizante, via `expires_at` do driver. Limite absoluto de 12 horas desde o login, **validado no servidor** por middleware próprio com `login_at` nos dados assinados da sessão (o driver não oferece esse limite). Valores configuráveis por ambiente. Detalhes na seção 4.3 e no ADR 0002. |
+| Rotação e revogação da sessão | O login regenera o identificador (o guard de sessão faz isso) e etiqueta a sessão com o id do usuário. A troca de senha rotaciona o identificador, **preserva `login_at`** (o limite absoluto de 12 horas não reinicia) e destrói as outras sessões do usuário (*session tagging*: `tagged` e `destroy`). Reset de senha e desativação de `staff` destroem todas as sessões do usuário afetado. O logout remove a etiqueta e destrói a sessão no servidor: o cookie copiado deixa de valer. |
 | Sessão, CORS e CSRF | Mesma origem (Nginx em produção, proxy em desenvolvimento): sem CORS no fluxo normal. Cookie `HttpOnly`, `Secure`, `SameSite`. `HttpOnly` não substitui CSRF: rotas com cookie que alteram estado exigem proteção CSRF (token e/ou validação de `Origin`). ADR na tarefa F0-T6. |
 | Autorização por perfil | Verificada no backend em toda rota (`platform_admin`, `owner`, `staff`), com vínculo ativo. Esconder botão não é autorização. |
 | Isolamento por restaurante | Em cada operação (leitura, criação, alteração, exclusão) a API valida o vínculo ativo do usuário com o restaurante e aplica explicitamente `restaurant_id` na consulta. Um helper simples pode reduzir repetição, mas não substitui a validação. FKs compostas reforçam no banco. O `:restaurantId` da URL indica o contexto pedido, mas **não concede autorização**. |
 | IDOR | Todo recurso é buscado por `id` **e** `restaurant_id` validado. Recurso de outro restaurante responde `404`. |
 | Slug público | Dá acesso somente ao cardápio público do restaurante ativo. |
 | Identificador da mesa | Não é autenticação. Só contexto do pedido. |
-| Rate limit | Em memória do processo (uma instância da API), limites configuráveis por ambiente. Valores iniciais: **login** 5 tentativas por minuto por IP e identificador de usuário; **criação de pedido** 5 pedidos por minuto por IP e restaurante; **acompanhamento** 30 consultas por minuto por IP (compatível com a recarga periódica da tela). Nginx aplica limites complementares. |
+| Rate limit | Em memória do processo (uma instância da API), limites configuráveis por ambiente. Valores iniciais: **login** 5 tentativas por minuto por IP e identificador de usuário; **criação de pedido** 5 pedidos por minuto por IP e restaurante; **acompanhamento** 30 consultas por minuto por IP (compatível com a recarga periódica da tela); **cotação do carrinho** 30 por minuto por IP e restaurante (valor inicial, configurável). Nginx aplica limites complementares. |
 | Validação de entrada | VineJS (validator do AdonisJS) em toda rota; rejeita campos desconhecidos; limites da seção 4.5. |
 | Idempotência | `Idempotency-Key` + `idempotency_hash` (seção 5.5). A chave não substitui validação do payload nem a transação. |
 | Upload de imagem | Tipo detectado pelo conteúdo (JPEG, PNG, WebP), extensão coerente, máximo 5 MB, nome gerado pelo servidor, caminho isolado por restaurante, nunca executável. |
@@ -589,7 +628,7 @@ Prefixo `/api/v1`. Sucesso: `{ "data": ..., "meta"?: ... }`. Erro: `{ "code", "m
 | `POST /auth/login` | Inicia a sessão. **Auth:** não. **Entrada:** `{ email, password }`. **Resposta:** `200 { data: { user: { id, name, email, is_platform_admin, must_change_password }, restaurants: [{ id, name, slug, role }] } }` (somente vínculos ativos). **Erros:** `401 INVALID_CREDENTIALS` (mensagem única), `429`. Rate limit: 5/min por IP e identificador. |
 | `POST /auth/logout` | Encerra e invalida a sessão. **Auth:** sessão. `204`. |
 | `GET /auth/me` | Usuário e restaurantes vinculados. **Auth:** sessão. |
-| `PATCH /auth/password` | Troca a própria senha (também no primeiro acesso). **Auth:** sessão (permitido com `must_change_password`). **Entrada:** `{ current_password, new_password }`. **Validações:** senha atual correta; nova senha atende à política mínima e difere da atual. **Resposta:** `204`; zera `must_change_password`. **Erros:** `422`, `429`. |
+| `PATCH /auth/password` | Troca a própria senha (também no primeiro acesso). **Auth:** sessão (permitido com `must_change_password`). **Entrada:** `{ current_password, new_password }`. **Validações:** senha atual correta; nova senha atende à política mínima e difere da atual. **Resposta:** `204`; zera `must_change_password`, rotaciona o identificador da sessão atual e destrói as outras sessões do usuário. **Erros:** `422`, `429`. |
 
 ### 8.2 Administração da plataforma (`is_platform_admin`)
 
@@ -642,6 +681,7 @@ O QR Code é gerado no frontend (`qrcode`) a partir da URL pública (`/r/:slug` 
 | Endpoint | Detalhes |
 | --- | --- |
 | `GET /public/restaurants/:slug` | Cardápio completo em uma resposta, sem endpoint de produto isolado. **Parâmetros:** `mesa?` (identificador; se válido, ativo e de modalidade habilitada, devolve o nome da mesa). **Resposta:** `200 { data: { restaurant: { name, slug, description, phone, logo_url }, fulfillment_types: ["dine_in"?, "pickup"?], payment_methods: ["cash"?, "card"?, "pix"?], table?: { name }, categories: [{ id, name, description, products: [{ id, name, description, price, image_url, addons: [{ id, name, description, price }] }] }] } }`. Só categorias ativas, produtos e adicionais disponíveis, opções habilitadas. **Erros:** `404` slug inexistente ou restaurante inativo. Sem `restaurant_id`, e-mails ou vínculos. |
+| `POST /public/restaurants/:slug/cart/quote` | Cota o carrinho (seção 5.9). **Não cria pedido, não reserva produto e não grava nada.** Sem `Idempotency-Key`. **Entrada:** `{ items: [{ product_id, quantity, addon_ids: [uuid] }] }`; mesmos limites do pedido (até 30 itens distintos, quantidade de 1 a 20, `addon_ids` sem repetição); qualquer campo monetário é rejeitado. **Resposta:** `200 { data: { items: [{ product_id, name, quantity, unit_price, addons: [{ id, name, unit_price }], subtotal }], total } }`, todos os valores como **string decimal** com duas casas, `Cache-Control: no-store`. **Erros:** `404` restaurante inativo ou inexistente; `422 ITEM_UNAVAILABLE` (com os ids afetados); `422 VALIDATION_ERROR`; `429` (30/min por IP e restaurante). Sem cookie de sessão (grupo `/public`, ADR 0002). |
 | `POST /public/restaurants/:slug/orders` | Cria o pedido. **Header obrigatório:** `Idempotency-Key` (UUID). **Entrada:** `{ customer: { name, phone? }, fulfillment_type, payment_method, table_identifier?, notes?, items: [{ product_id, quantity, addon_ids: [uuid] }] }`. Qualquer campo de valor monetário é rejeitado. **Resposta:** `201 { data: { order_number, tracking_token, status, total, items: [...] } }` somente após o commit; repetição idêntica devolve `200` com o mesmo corpo e o mesmo token. **Validações:** modalidade e método habilitados; `table_identifier` obrigatório em `dine_in` e proibido em `pickup`; telefone obrigatório em `pickup`; até 30 itens distintos, quantidade de 1 a 20, `addon_ids` sem repetição e associados ao produto; textos dentro dos limites. **Erros:** `404` restaurante inativo ou inexistente; `409 CONFLICT` chave de idempotência reutilizada com conteúdo diferente; `422 ITEM_UNAVAILABLE` (com os ids afetados); `422 VALIDATION_ERROR`; `429` (5/min por IP e restaurante). |
 | `GET /public/orders/:trackingToken` | Acompanhamento. **Resposta mínima:** `200 { data: { restaurant_name, order_number, status, fulfillment_type, created_at, updated_at, items: [{ name, quantity, addons: [name], subtotal }], total } }`. **Nunca** devolve telefone, nome do cliente, observações, IDs internos, `restaurant_id` nem o token. Cabeçalhos `Cache-Control: no-store`, `Referrer-Policy: no-referrer`. **Erros:** `404` uniforme, `429` (30/min por IP). |
 
@@ -665,9 +705,9 @@ Não existe rota pública de cancelamento nem de listagem de pedidos.
 | --- | --- |
 | `/r/:slug` | Cabeçalho do restaurante, navegação por categorias, lista de produtos com imagem, descrição e preço. Aceita `?mesa=`. Restaurante inativo ou inexistente: página 404. |
 | Detalhe do produto (modal) | Descrição, adicionais opcionais, quantidade, botão de adicionar ao carrinho. |
-| Carrinho | Estado local (sem conta). Mostra itens, adicionais, quantidade e total **apenas informativo** (o oficial vem do backend). Edição e remoção de itens. |
+| Carrinho | Estado local (sem conta). Mostra itens, adicionais, quantidade e total **apenas informativo** (o oficial vem do backend). Edição e remoção de itens. O total e os subtotais vêm da **cotação do backend** (`POST /public/restaurants/:slug/cart/quote`), pedida a cada alteração do carrinho (com pequeno atraso para agrupar cliques) e exibidos como strings. O frontend **não soma valores**. Enquanto a cotação carrega ou falha, o total aparece como indisponível e o envio do pedido continua possível, pois o pedido recalcula tudo. |
 | Checkout | Nome; telefone (obrigatório em retirada); modalidade e forma de pagamento entre as **habilitadas**; mesa (preenchida pelo QR, em `dine_in`); observações. Gera um `Idempotency-Key` por tentativa de checkout, reutiliza-o em reenvios da mesma tentativa e usa nova chave apenas em nova tentativa intencional. O botão de envio fica desabilitado durante a requisição (reduz cliques duplos, não substitui a chave). |
-| Confirmação e acompanhamento `/r/:slug/pedido/:token` | Mostra número do pedido, status, itens e total devolvidos pela API. Atualização manual por botão e recarga periódica simples (compatível com 30 consultas/min). Orienta o cliente a guardar o link. Sem scripts de terceiros. Sem botão de cancelar. |
+| Confirmação e acompanhamento `/r/:slug/pedido/:token` | Mostra número do pedido, status, itens e total devolvidos pela API (o total do pedido criado prevalece sobre o cotado). Atualização manual por botão e recarga periódica simples (compatível com 30 consultas/min). Orienta o cliente a guardar o link. Sem scripts de terceiros. Sem botão de cancelar. |
 
 ### 9.2 Painel do restaurante
 
@@ -730,9 +770,9 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 
 | ID | Objetivo | Dep. | Módulos | Implementação | Regras | Testes | Aceite |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F2-T1 | Migrations de identidade | F1 | `database` | `users` (com `must_change_password`), `restaurants` (com `accepts_*` e `next_order_number`), `restaurant_users` (com `is_active`) | Índice único em `lower(email)`; slug com `CHECK`; `CHECK` de configuração | Migration sobe e desfaz; CT-05 | Constraints verificadas em teste |
+| F2-T1 | Migrations de identidade e sessões | F1 | `database`, `auth` | `users` (com `must_change_password`), `restaurants` (com `accepts_*` e `next_order_number`), `restaurant_users` (com `is_active`); instalar `@adonisjs/auth` e `@adonisjs/session`; configurar o driver `database` (`age` de 2 horas, nome da tabela `sessions`) e gerar a migration de sessões com `node ace make:session-table` (seção 4.3) | Índice único em `lower(email)`; slug com `CHECK`; `CHECK` de configuração; migration de sessões idêntica à gerada pelo pacote, sem armazenamento paralelo e sem `restaurant_id`; conferir a versão do pacote (nota da seção 4.3) | Migration sobe e desfaz; CT-05; tabela `sessions` com as colunas `id`, `data`, `user_id`, `expires_at` e seus índices | Constraints verificadas em teste; sessões persistem no PostgreSQL |
 | F2-T2 | Comando do primeiro `platform_admin` | F2-T1 | `auth` | Comando Ace interativo, senha sem eco, hash | Sem senha padrão; nada em log | Executa o comando em banco de teste | Administrador criado fora do código versionado, senha só como hash |
-| F2-T3 | Login, logout, `me` e troca de senha | F2-T1, F0-T6 | `auth` | Sessão por cookie; `PATCH /auth/password`; bloqueio `PASSWORD_CHANGE_REQUIRED`; rate limit de login | Mensagem única de credencial inválida; vínculo inativo não loga no restaurante | Login válido e inválido; logout; rate limit; flags do cookie; bloqueio com `must_change_password`; troca libera as rotas | Sessão encerrada não acessa rotas protegidas |
+| F2-T3 | Login, logout, `me` e troca de senha | F2-T1, F0-T6 | `auth` | Sessão por cookie no driver `database`; `session.tag` após o login e `untag` no logout; `login_at` nos dados da sessão e middleware do limite absoluto de 12 horas; revogação de outras sessões por `tagged` e `destroy`; **middleware de `Origin` do ADR 0002 registrado no grupo de rotas antes de qualquer rota que altere estado**; `PATCH /auth/password`; bloqueio `PASSWORD_CHANGE_REQUIRED`; rate limit de login | Mensagem única de credencial inválida; vínculo inativo não loga no restaurante; limites de sessão validados no servidor; sem *remember me* | **Os 17 testes obrigatórios do ADR 0002** (sessão, CSRF e origem, rate limit); além deles: login válido e inválido, bloqueio com `must_change_password` e troca libera as rotas | Sessão encerrada não acessa rotas protegidas; limites de inatividade e absoluto, rotação e revogação comprovados por teste |
 | F2-T4 | Proteção CSRF e origem | F2-T3 | `auth`, middleware | CSRF em rotas autenticadas por cookie; validação de `Origin` | Todo método que altera estado | Sem token ou origem errada falha | Requisições legítimas passam |
 | F2-T5 | Contexto de restaurante e autorização | F2-T3 | `restaurants`, `auth` | Validação de vínculo ativo e perfil em toda rota `/tenant/:restaurantId`; helper simples de filtro por `restaurant_id` | Validar a cada operação; recurso alheio responde `404`; `:restaurantId` não concede acesso | Sem vínculo, vínculo inativo, perfil insuficiente, usuário em dois restaurantes | Usuário só acessa restaurante com vínculo ativo |
 | F2-T6 | Restaurantes pela plataforma | F2-T3, F2-T5 | `restaurants` | `/platform/restaurants`: listar, criar com `owner`, detalhar, editar, ativar/desativar, nova senha temporária do `owner` | Slug único e reservado; transação na criação; senha temporária exibida uma vez, sem log; vínculo de e-mail existente só com `confirm_link_existing_user` e `platform_admin` autenticado; log de auditoria | CRUD; slug e e-mail duplicados; vínculo com e confirmação, sem alterar senha; senha ausente de logs; acesso por não administrador | Plataforma gerencia restaurantes; `owner` não acessa a plataforma |
@@ -772,19 +812,20 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 
 ### Fase 5 — Pedidos
 
-**Entregas:** carrinho, identificação do cliente, modalidade e forma de pagamento, envio do pedido com idempotência, número do pedido, cálculo no backend, snapshot, token de acompanhamento, painel de pedidos, atualização e histórico de status.
-**Critério de conclusão:** cliente envia pedido completo, sem duplicidade em reenvios; restaurante recebe e atualiza; valores persistidos calculados no backend; o cliente acompanha só o próprio pedido; pedidos de restaurantes diferentes isolados.
+**Entregas:** carrinho com cotação calculada pelo backend, identificação do cliente, modalidade e forma de pagamento, envio do pedido com idempotência, número do pedido, cálculo no backend, snapshot, token de acompanhamento, painel de pedidos, atualização e histórico de status.
+**Critério de conclusão:** cliente vê o total cotado pelo backend, envia pedido completo, sem duplicidade em reenvios; restaurante recebe e atualiza; valores persistidos calculados no backend; a cotação não cria pedido nem reserva produto; o cliente acompanha só o próprio pedido; pedidos de restaurantes diferentes isolados.
 
 | ID | Objetivo | Dep. | Módulos | Implementação | Regras | Testes | Aceite |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F5-T1 | Migrations de pedidos | F4 | `database` | `orders` (com `order_number`, `table_name`, `idempotency_key`, `idempotency_hash`), `order_items`, `order_item_addons`, `order_status_history` | FKs compostas; `SET NULL (coluna)`; snapshots; sem `subtotal` em `orders` | FK-04 a FK-09; CT-01 a CT-04, CT-06; `SET NULL` preserva `restaurant_id` | Constraints verificadas em teste |
 | F5-T2 | Criação do pedido | F5-T1 | `orders` | `POST /public/restaurants/:slug/orders` conforme a seção 5.5 | Transação única; número atômico; `FOR SHARE`; recálculo com `big.js`; resposta só após commit; idempotência | Totais corretos (inclusive adicional por unidade); total do cliente ignorado; item indisponível; adicional não associado; produto de outro restaurante; modalidade/método desabilitado; telefone por modalidade; mesa por modalidade (`pickup` com mesa, `dine_in` sem mesa, mesa inativa ou de outro restaurante); restaurante inativo; limites; rollback em falha; produto tornado indisponível durante o pedido | Nunca existe pedido parcial; valores iguais aos calculados no backend |
+| F5-T2a | Cotação do carrinho | F5-T2 | `orders` | `POST /public/restaurants/:slug/cart/quote` (seções 5.9 e 8.4), reutilizando a função de cálculo do pedido; rate limit próprio | Backend como única fonte de cálculo (`big.js`); valores como string decimal; **não cria pedido, não consome `next_order_number`, não grava, não trava linhas e não reserva produto**; sem `Idempotency-Key`; `no-store`; sem cookie de sessão | Totais idênticos aos do pedido para o mesmo carrinho (inclusive adicional por unidade); valores devolvidos como string com duas casas; campo monetário enviado pelo cliente rejeitado; item indisponível, adicional não associado e produto de outro restaurante respondem `422`; restaurante inativo `404`; limites de itens e quantidade; rate limit; **após a cotação, `orders`, `order_items`, `order_status_history` e `next_order_number` permanecem inalterados**; cotação seguida de mudança de preço no catálogo: o pedido criado usa o preço novo | Cotação não deixa rastro no banco; total da cotação igual ao do pedido quando o catálogo não muda |
 | F5-T3 | Idempotência e numeração sob concorrência | F5-T2 | `orders` | Comparação de hash e tratamento de corrida (seção 5.5, passos 2, 3 e 11) | Hash sobre payload normalizado antes dos preços; mesma chave e mesmo conteúdo devolve o mesmo token | Repetição idêntica (mesmo pedido, mesmo token); conteúdo diferente (`409`); repetição após mudança de preço do catálogo (continua igual); requisições idênticas simultâneas (um pedido); pedidos simultâneos em um restaurante (números únicos e sem lacunas por sucesso); numeração independente entre restaurantes | Sem pedido duplicado e sem número repetido |
 | F5-T4 | Token de acompanhamento | F5-T2 | `orders` | `crypto.randomBytes`; `GET /public/orders/:trackingToken` | Dados mínimos; `no-store` e `no-referrer`; `404` uniforme; rate limit | Token válido e inválido; resposta sem telefone, nome, observações, IDs ou outros pedidos; rate limit | Cliente só vê o próprio pedido |
 | F5-T5 | Logs sem token e sem dados pessoais | F5-T4 | `apps/api`, Nginx | Redação do caminho e do corpo nos logs | Seção 7.3 | Requisições de pedido e de token não gravam os dados | Nenhum token, nome ou telefone nos logs |
 | F5-T6 | Painel: listar e detalhar | F5-T2, F2-T5 | `orders` | `GET /orders` e `/orders/:id` | Filtro por restaurante em cada consulta; sem token no detalhe; `platform_admin` sem acesso | Isolamento (GET) A × B; `platform_admin` recusado | Restaurante vê só seus pedidos |
 | F5-T7 | Painel: atualizar status | F5-T6 | `orders` | `PATCH /orders/:id/status` com tabela de transições | Seção 5.3; histórico na mesma transação; cancelamento só até `preparing`; `staff` pode alterar status | Todas as transições válidas e inválidas; cancelamento em cada estado; histórico gravado; isolamento (PATCH); inexistência de rota pública de cancelamento | Estados finais bloqueados; histórico completo |
-| F5-T8 | Carrinho, checkout e acompanhamento | F5-T2, F5-T4 | `apps/web` | Telas públicas da seção 9.1 | Total exibido informativo; `Idempotency-Key` por tentativa; sem scripts de terceiros; sem botão de cancelar | Teste de fluxo (Playwright) até a confirmação, incluindo reenvio | Cliente envia pedido e acompanha |
+| F5-T8 | Carrinho, checkout e acompanhamento | F5-T2, F5-T2a, F5-T4 | `apps/web` | Telas públicas da seção 9.1; total do carrinho obtido da cotação | Frontend sem aritmética monetária (ADR 0001): exibe e envia strings; total da cotação informativo; `Idempotency-Key` por tentativa; sem scripts de terceiros; sem botão de cancelar | Teste de fluxo (Playwright) até a confirmação: carrinho exibe o total cotado, cotação falha sem impedir o envio, total do pedido criado prevalece, reenvio | Cliente vê o total cotado, envia pedido e acompanha |
 | F5-T9 | Telas de pedidos | F5-T6, F5-T7 | `apps/web` | Lista, detalhe e transições | Sem lógica de negócio no front | Teste de fluxo: restaurante atualiza status | Mudança de status aparece no acompanhamento |
 | F5-T10 | Testes de isolamento de pedidos | F5-T6, F5-T7 | `tests` | Suíte A × B: leitura, alteração e exclusão (exclusão inexistente: `404` ou `405`) | Seção 6 | A suíte | Todos os cenários passam |
 
@@ -828,6 +869,8 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 | PEND-14 | Idempotência por `Idempotency-Key` (UUID do frontend), `UNIQUE (restaurant_id, idempotency_key)` e `idempotency_hash` do payload normalizado. Mesmo conteúdo devolve o mesmo pedido e token; conteúdo diferente devolve `409`. |
 | PEND-15 | Rate limit em memória do processo, uma instância da API; reinicia com o processo; revisar antes de escalar; Nginx como defesa complementar. |
 | PEND-16 | PostgreSQL 15 ou superior em Compose, desenvolvimento, testes, produção e documentação. |
+| PEND-17 | Sessões no driver `database` oficial do `@adonisjs/session`, com a migration gerada pelo pacote e *session tagging* para revogar outras sessões. Inatividade de 2 horas (`expires_at` deslizante); limite absoluto de 12 horas validado no servidor com `login_at` nos dados da sessão. Detalhes na seção 4.3 e no ADR 0002. |
+| PEND-18 | Total do carrinho pela cotação pública `POST /public/restaurants/:slug/cart/quote` (seção 5.9): só o backend calcula valores monetários, o frontend exibe strings, e a cotação não cria pedido nem reserva produto. O pedido recalcula tudo. |
 
 **Aprovações registradas:**
 
@@ -842,7 +885,7 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 | APR-07 | Seção de dados pessoais aprovada como regra técnica, condicionada à validação jurídica e do negócio da retenção e da anonimização. |
 | APR-08 | PostgreSQL 15 ou superior. |
 
-**Acréscimos de implementação decorrentes das decisões** (registrados para conferência): `users.must_change_password`; `restaurant_users.is_active`; `restaurants.accepts_*`; `orders.idempotency_hash`; `orders.table_name` (snapshot da mesa); `PATCH /auth/password`, `/tenant/:restaurantId/staff` e `/restaurant/settings`; `POST /platform/restaurants/:id/owner/reset-password`.
+**Acréscimos de implementação decorrentes das decisões** (registrados para conferência): `users.must_change_password`; `restaurant_users.is_active`; `restaurants.accepts_*`; `orders.idempotency_hash`; `orders.table_name` (snapshot da mesa); `PATCH /auth/password`, `/tenant/:restaurantId/staff` e `/restaurant/settings`; `POST /platform/restaurants/:id/owner/reset-password`; tabela `sessions` (seção 4.3); `POST /public/restaurants/:slug/cart/quote` (seção 8.4); tarefa F5-T2a. Estes dois últimos alteram o contrato da API aprovado em F0-T4, por decisão do usuário.
 
 ### 11.2 Questões em aberto
 
