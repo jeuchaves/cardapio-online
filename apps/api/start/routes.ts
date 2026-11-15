@@ -93,6 +93,11 @@ router
             router.delete('products/:id', [controllers.Products, 'destroy'])
             router.delete('products/:id/image', [controllers.Products, 'destroyImage'])
             router.delete('addons/:id', [controllers.Addons, 'destroy'])
+
+            router.get('tables', [controllers.Tables, 'index'])
+            router.post('tables', [controllers.Tables, 'store'])
+            router.patch('tables/:id', [controllers.Tables, 'update'])
+            router.delete('tables/:id', [controllers.Tables, 'destroy'])
           })
           .use(middleware.ownerOnly())
       })

@@ -11,6 +11,7 @@ export const controllers = {
   PlatformRestaurants: () => import('#controllers/platform_restaurants_controller'),
   Products: () => import('#controllers/products_controller'),
   Staff: () => import('#controllers/staff_controller'),
+  Tables: () => import('#controllers/tables_controller'),
   TenantRestaurant: () => import('#controllers/tenant_restaurant_controller'),
   Uploads: () => import('#controllers/uploads_controller'),
 }

@@ -38,6 +38,10 @@ export type ScannedRoutes = {
     'products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'products.destroy_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'tables.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'tables.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'tables.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'tables.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   GET: {
@@ -50,6 +54,7 @@ export type ScannedRoutes = {
     'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'tables.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   HEAD: {
@@ -62,6 +67,7 @@ export type ScannedRoutes = {
     'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'tables.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'uploads.show': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
   }
   POST: {
@@ -74,6 +80,7 @@ export type ScannedRoutes = {
     'addons.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.reset_password': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
+    'tables.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
   }
   PATCH: {
     'auth.change_password': { paramsTuple?: []; params?: {} }
@@ -85,6 +92,7 @@ export type ScannedRoutes = {
     'tenant_restaurant.update': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tenant_restaurant.update_settings': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'userId': ParamValue} }
+    'tables.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
   }
   PUT: {
     'products.replace_addons': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
@@ -96,6 +104,7 @@ export type ScannedRoutes = {
     'products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'products.destroy_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'tables.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

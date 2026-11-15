@@ -89,6 +89,25 @@ export class ProductSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class RestaurantTableSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'identifier', 'isActive', 'name', 'restaurantId', 'updatedAt'] as const
+  $columns = RestaurantTableSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare identifier: string
+  @column()
+  declare isActive: boolean
+  @column()
+  declare name: string
+  @column()
+  declare restaurantId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class RestaurantUserSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'isActive', 'restaurantId', 'role', 'updatedAt', 'userId'] as const
   $columns = RestaurantUserSchema.$columns
