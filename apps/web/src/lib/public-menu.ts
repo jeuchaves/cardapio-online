@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 // Leitura do cardápio público (GET /public/restaurants/:slug), feita no servidor do Next.js.
 // Sem sessão e sem regra de negócio: o preço e o que é exibido vêm prontos da API.
 
@@ -38,8 +40,11 @@ export type PublicMenu = { restaurant: PublicRestaurant; categories: PublicCateg
 
 const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3333";
 
-/** Devolve null quando o restaurante não existe ou está inativo (404 uniforme da API). */
-export async function getPublicMenu(slug: string): Promise<PublicMenu | null> {
+/**
+ * Devolve null quando o restaurante não existe ou está inativo (404 uniforme da API).
+ * `cache` do React: a página e o generateMetadata compartilham uma só chamada por requisição.
+ */
+export const getPublicMenu = cache(async (slug: string): Promise<PublicMenu | null> => {
   const response = await fetch(
     `${apiUrl}/api/v1/public/restaurants/${encodeURIComponent(slug)}`,
     { cache: "no-store" },
@@ -48,4 +53,4 @@ export async function getPublicMenu(slug: string): Promise<PublicMenu | null> {
   if (!response.ok) throw new Error("Não foi possível carregar o cardápio.");
   const payload = (await response.json()) as { data: PublicMenu };
   return payload.data;
-}
+});

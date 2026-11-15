@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { PublicProductCard } from "@/components/public-product-card";
@@ -5,6 +6,26 @@ import { getPublicMenu } from "@/lib/public-menu";
 
 const MODES = { dine_in: "Consumo no local", pickup: "Retirada" } as const;
 const PAYMENTS = { cash: "Dinheiro", card: "Cartão", pix: "Pix" } as const;
+
+const DESCRIPTION_LIMIT = 160;
+
+// Só dados públicos do restaurante (nome e descrição): sem telefone nem outros dados pessoais.
+// Slug inexistente ou inativo: a página responde 404 e o Next já adiciona noindex.
+export async function generateMetadata({ params }: PageProps<"/r/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const menu = await getPublicMenu(slug);
+  if (!menu) return {};
+  const { name, description } = menu.restaurant;
+  const title = `${name} — Cardápio`;
+  const text = description?.trim()
+    ? description.trim().slice(0, DESCRIPTION_LIMIT)
+    : `Veja o cardápio de ${name} e conheça os produtos disponíveis.`;
+  return {
+    title,
+    description: text,
+    openGraph: { title, description: text, type: "website", locale: "pt_BR", siteName: name },
+  };
+}
 
 // Cardápio público: sem login e sem carrinho (Fase 5). Tudo vem de GET /public/restaurants/:slug.
 export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">) {
