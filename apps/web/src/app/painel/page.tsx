@@ -22,7 +22,10 @@ export default function PainelPage() {
                 <Badge variant="secondary">{restaurant.role === "owner" ? "Dono" : "Equipe"}</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-4 text-sm underline">
+            <CardContent className="flex flex-wrap gap-4 text-sm underline">
+              <Link href={`/painel/${restaurant.id}/categorias`}>Categorias</Link>
+              <Link href={`/painel/${restaurant.id}/produtos`}>Produtos</Link>
+              <Link href={`/painel/${restaurant.id}/adicionais`}>Adicionais</Link>
               <Link href={`/painel/${restaurant.id}/configuracoes`}>Configurações</Link>
               {restaurant.role === "owner" ? (
                 <Link href={`/painel/${restaurant.id}/equipe`}>Equipe</Link>

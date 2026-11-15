@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { ImageUpload } from "@/components/image-upload";
 import { useSession } from "@/components/session-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [options, setOptions] = useState<Record<OptionKey, boolean> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     api<{ data: RestaurantData }>(`/tenant/${restaurantId}/restaurant`)
@@ -47,7 +49,7 @@ export default function SettingsPage() {
         });
       })
       .catch((err: unknown) => setLoadError(errorMessage(err)));
-  }, [restaurantId]);
+  }, [restaurantId, reloadKey]);
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,6 +100,22 @@ export default function SettingsPage() {
         </p>
       )}
       {message ? <p role="status">{message}</p> : null}
+
+      {isOwner ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Logo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ImageUpload
+              label="Logo do restaurante"
+              imageUrl={restaurant.logo_url}
+              uploadPath={`/tenant/${restaurantId}/restaurant/logo`}
+              onChanged={() => setReloadKey((key) => key + 1)}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

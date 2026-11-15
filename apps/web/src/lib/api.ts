@@ -19,10 +19,12 @@ export async function api<T = undefined>(
   init: { method?: string; body?: unknown } = {},
 ): Promise<T> {
   const hasBody = init.body !== undefined;
+  // FormData (upload de imagem): o navegador define o Content-Type com o boundary
+  const isForm = init.body instanceof FormData;
   const response = await fetch(`/api/v1${path}`, {
     method: init.method ?? "GET",
-    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
-    body: hasBody ? JSON.stringify(init.body) : undefined,
+    headers: hasBody && !isForm ? { "Content-Type": "application/json" } : undefined,
+    body: hasBody ? (isForm ? (init.body as FormData) : JSON.stringify(init.body)) : undefined,
     cache: "no-store",
   });
 
@@ -64,6 +66,7 @@ export type RestaurantData = {
   slug: string;
   description: string | null;
   phone: string | null;
+  logo_url: string | null;
   is_active: boolean;
   accepts_dine_in: boolean;
   accepts_pickup: boolean;
@@ -79,3 +82,36 @@ export type StaffMember = {
   role: Role;
   is_active: boolean;
 };
+
+export type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+export type Addon = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: string;
+  is_available: boolean;
+};
+
+export type Product = {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  price: string;
+  image_url: string | null;
+  sort_order: number;
+  is_available: boolean;
+  addons: Addon[];
+};
+
+// Preço chega e sai como string decimal; só troca o separador para exibir (sem number).
+export function formatPrice(price: string) {
+  return `R$ ${price.replace(".", ",")}`;
+}
