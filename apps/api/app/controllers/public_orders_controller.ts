@@ -7,8 +7,16 @@ import { hashOrderInput } from '#support/order_hash'
 import { addonSubtotal, loadCatalog, priceCart, type CartLine } from '#support/order_cart'
 import { findActiveRestaurantBySlug, type PublicRestaurant } from '#support/public_restaurant'
 import { throttleOrderCreation } from '#support/rate_limit'
-import { isUuid, rejectUnknownFields, validationError } from '#support/request_helpers'
+import { loadOrderBody, sortOrderItems, type OrderBody } from '#support/order_response'
+import {
+  isUniqueViolation,
+  isUuid,
+  rejectUnknownFields,
+  validationError,
+} from '#support/request_helpers'
 import { CUSTOMER_FIELDS, ITEM_FIELDS, ORDER_FIELDS, createOrderValidator } from '#validators/order'
+
+const IDEMPOTENCY_UNIQUE = 'orders_restaurant_idempotency_key_unique'
 
 type OrderInput = Awaited<ReturnType<typeof createOrderValidator.validate>>
 
@@ -35,15 +43,48 @@ export default class PublicOrdersController {
     }))
     const idempotencyHash = hashOrderInput(input)
 
-    // Uma transação: qualquer erro antes do commit desfaz tudo, inclusive o número do pedido
-    const order = await db.transaction((trx) =>
-      createOrder(trx, restaurant.id, input, lines, idempotencyKey, idempotencyHash)
-    )
-
-    // A resposta só existe depois do commit; leva o token, então não pode ser guardada em cache
+    // A resposta leva o token, então não pode ser guardada em cache
     response.header('Cache-Control', 'no-store')
+
+    // Passo 3: chave já usada neste restaurante. Mesmo conteúdo devolve o pedido; outro, 409
+    const existing = await replayOrConflict(restaurant.id, idempotencyKey, idempotencyHash)
+    if (existing) return response.status(200).send({ data: existing })
+
+    let order: OrderBody
+    try {
+      // Uma transação: qualquer erro antes do commit desfaz tudo, inclusive o número do pedido
+      order = await db.transaction((trx) =>
+        createOrder(trx, restaurant.id, input, lines, idempotencyKey, idempotencyHash)
+      )
+    } catch (error) {
+      // Passo 11: só a violação da chave de idempotência é uma corrida recuperável. A transação
+      // já foi desfeita aqui; relê o pedido vencedor. Sem vencedor, o erro original segue.
+      if (!isUniqueViolation(error, IDEMPOTENCY_UNIQUE)) throw error
+      const winner = await replayOrConflict(restaurant.id, idempotencyKey, idempotencyHash)
+      if (!winner) throw error
+      return response.status(200).send({ data: winner })
+    }
+
+    // A resposta só existe depois do commit
     return response.status(201).send({ data: order })
   }
+}
+
+/**
+ * Pedido já criado com esta chave, no mesmo restaurante: devolve o corpo se o conteúdo é o mesmo
+ * (hash igual) ou responde 409 se é diferente. O 409 não expõe dados do pedido existente.
+ */
+async function replayOrConflict(restaurantId: string, key: string, hash: string) {
+  const existing = await db
+    .from('orders')
+    .where('restaurant_id', restaurantId)
+    .where('idempotency_key', key)
+    .first()
+  if (!existing) return null
+  if (existing.idempotency_hash !== hash) {
+    throw new ApiError(409, 'CONFLICT', 'Esta chave de idempotência já foi usada com outro pedido.')
+  }
+  return loadOrderBody(restaurantId, existing)
 }
 
 // O Vine descarta campos extras; o contrato rejeita (inclusive qualquer campo monetário)
@@ -92,7 +133,7 @@ async function createOrder(
   lines: CartLine[],
   idempotencyKey: string,
   idempotencyHash: string
-) {
+): Promise<OrderBody> {
   // Número atômico por restaurante; o rollback desfaz o incremento se algo falhar depois
   const numbered = await trx.rawQuery(
     `UPDATE restaurants SET next_order_number = next_order_number + 1
@@ -140,7 +181,12 @@ async function createOrder(
     idempotency_hash: idempotencyHash,
   })
 
-  const itemRows = priced.items.map((item) => ({ id: randomUUID(), item }))
+  // Ids gerados aqui também desempatam a ordem canônica da resposta (order_response.ts)
+  const itemRows = priced.items.map((item) => ({
+    id: randomUUID(),
+    item,
+    addons: item.addons.map((addon) => ({ ...addon, row_id: randomUUID() })),
+  }))
   await trx.table('order_items').insert(
     itemRows.map(({ id, item }) => ({
       id,
@@ -154,8 +200,9 @@ async function createOrder(
     }))
   )
 
-  const addonRows = itemRows.flatMap(({ id, item }) =>
-    item.addons.map((addon) => ({
+  const addonRows = itemRows.flatMap(({ id, item, addons }) =>
+    addons.map((addon) => ({
+      id: addon.row_id,
       restaurant_id: restaurantId,
       order_item_id: id,
       product_addon_id: addon.id,
@@ -180,6 +227,8 @@ async function createOrder(
     tracking_token: trackingToken,
     status: 'pending',
     total: priced.total,
-    items: priced.items,
+    items: sortOrderItems(
+      itemRows.map(({ id, item, addons }) => ({ ...item, row_id: id, addons }))
+    ),
   }
 }
