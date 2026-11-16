@@ -44,12 +44,16 @@ export type OrderDetail = {
   history: { previous_status: OrderStatus | null; new_status: OrderStatus; created_at: string }[];
 };
 
-// Próximos status oferecidos como botão (rótulo da ação). Cancelar é tratado à parte, com confirmação.
-const NEXT_ACTIONS: Partial<Record<OrderStatus, { status: OrderStatus; label: string }>> = {
-  pending: { status: "confirmed", label: "Confirmar pedido" },
-  confirmed: { status: "preparing", label: "Iniciar preparo" },
-  preparing: { status: "ready", label: "Marcar como pronto" },
-  ready: { status: "completed", label: "Concluir pedido" },
+// Próximos status oferecidos como botão. `label` é o rótulo do detalhe; `short` é o da lista, que leva
+// o número do pedido ao lado e não repete o texto do botão do detalhe. Cancelar é tratado à parte,
+// com confirmação.
+const NEXT_ACTIONS: Partial<
+  Record<OrderStatus, { status: OrderStatus; label: string; short: string }>
+> = {
+  pending: { status: "confirmed", label: "Confirmar pedido", short: "Confirmar" },
+  confirmed: { status: "preparing", label: "Iniciar preparo", short: "Preparar" },
+  preparing: { status: "ready", label: "Marcar como pronto", short: "Marcar pronto" },
+  ready: { status: "completed", label: "Concluir pedido", short: "Concluir" },
 };
 const CANCELLABLE: OrderStatus[] = ["pending", "confirmed", "preparing"];
 
@@ -63,3 +67,25 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", {
 });
 
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
+
+// Visões da lista de pedidos. Cada uma é uma única consulta (a API filtra por um status); "Todos"
+// não filtra. Nada de contadores nem de várias consultas por atualização.
+export const STATUS_VIEWS: { value: OrderStatus | ""; label: string }[] = [
+  { value: "pending", label: "Novos" },
+  { value: "confirmed", label: "Confirmados" },
+  { value: "preparing", label: "Em preparo" },
+  { value: "ready", label: "Prontos" },
+  { value: "", label: "Todos" },
+];
+
+// Tempo decorrido calculado no navegador a partir de created_at; passado um dia, mostra a data.
+export function elapsedLabel(iso: string, now: number) {
+  const minutes = Math.floor((now - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours} h`;
+  return formatDateTime(iso);
+}
+
+export const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
