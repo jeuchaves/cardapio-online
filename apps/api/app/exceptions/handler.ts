@@ -1,6 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import ApiError from '#exceptions/api_error'
+import { safeMessage, sanitizeError } from '#support/log_error'
 
 type KnownError = { code?: string; status?: number; messages?: unknown; response?: unknown }
 
@@ -60,8 +61,29 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       .send({ code: 'INTERNAL_ERROR', message: 'Erro interno. Tente novamente mais tarde.' })
   }
 
+  /**
+   * Mesma regra do Adonis (shouldReport, nível e x-request-id), mas o erro vai ao log só pela
+   * lista de propriedades permitidas de `sanitizeError`, nunca o objeto original.
+   */
   async report(error: unknown, ctx: HttpContext) {
-    return super.report(error, ctx)
+    const httpError = this.toHttpError(error)
+    if (!this.shouldReport(httpError)) return
+    if (typeof httpError.report === 'function') {
+      httpError.report(httpError, ctx)
+      return
+    }
+
+    const level = this.getErrorLogLevel(httpError)
+    const route = ctx.route?.pattern
+    ctx.logger.log(
+      level,
+      {
+        ...(level === 'error' || level === 'fatal' ? { err: sanitizeError(httpError) } : {}),
+        ...this.context(ctx),
+        ...(route ? { route } : {}),
+      },
+      safeMessage(httpError)
+    )
   }
 }
 
