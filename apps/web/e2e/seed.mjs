@@ -2,7 +2,7 @@
 // Cria um restaurante fictício com slug aleatório e remove apenas o que ele criou. Não toca em
 // nenhum dado preexistente, não roda migrations e nunca usa o cardapio_dev.
 import { execFileSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, scryptSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
@@ -71,6 +71,15 @@ export const FIXTURE = {
   tableIdentifier: "e2emesa001",
 };
 
+// Mesmo formato PHC do hasher scrypt do Adonis (n=16384, r=8, p=1, chave de 64 bytes). O login
+// real dos testes prova a compatibilidade.
+function scryptHash(password) {
+  const salt = randomBytes(16);
+  const key = scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
+  const b64 = (buffer) => buffer.toString("base64").replace(/=+$/, "");
+  return `$scrypt$n=16384,r=8,p=1$${b64(salt)}$${b64(key)}`;
+}
+
 export async function seed() {
   const slug = `e2e-${randomBytes(4).toString("hex")}`;
   return withDatabase(async (db) => {
@@ -118,7 +127,28 @@ export async function seed() {
       [restaurant, FIXTURE.tableIdentifier],
     );
 
-    return { restaurantId: restaurant, slug };
+    // Usuários fictícios com senha aleatória por execução (nunca escrita em arquivo)
+    const password = randomBytes(12).toString("hex");
+    const hash = scryptHash(password);
+    const users = {};
+    for (const role of ["owner", "staff"]) {
+      const email = `e2e-${role}-${slug}@example.test`;
+      const userId = (
+        await db.query(
+          `insert into users (name, email, password, created_at, updated_at)
+           values ($1, $2, $3, now(), now()) returning id`,
+          [`E2E ${role}`, email, hash],
+        )
+      ).rows[0].id;
+      await db.query(
+        `insert into restaurant_users (restaurant_id, user_id, role, created_at, updated_at)
+         values ($1, $2, $3, now(), now())`,
+        [restaurant, userId, role],
+      );
+      users[role] = email;
+    }
+
+    return { restaurantId: restaurant, slug, password, users };
   });
 }
 
@@ -161,6 +191,17 @@ export async function cleanup(restaurantId) {
       ]) {
         await db.query(`delete from ${table} where restaurant_id = $1`, [restaurantId]);
       }
+      // Só usuários E2E vinculados a este restaurante; suas sessões e vínculos saem junto
+      const userIds = (
+        await db.query(
+          `select u.id from users u join restaurant_users ru on ru.user_id = u.id
+           where ru.restaurant_id = $1 and u.email like 'e2e-%@example.test'`,
+          [restaurantId],
+        )
+      ).rows.map((row) => row.id);
+      await db.query("delete from sessions where user_id = any($1::text[])", [userIds]);
+      await db.query("delete from restaurant_users where restaurant_id = $1", [restaurantId]);
+      await db.query("delete from users where id = any($1::uuid[])", [userIds]);
       await db.query("delete from restaurants where id = $1 and slug like 'e2e-%'", [restaurantId]);
       await db.query("commit");
     } catch (error) {
@@ -196,4 +237,15 @@ function runAce(...args) {
     env: { ...process.env, NODE_ENV: "test" },
     stdio: "inherit",
   });
+}
+
+// Força o status direto no banco (simula outra pessoa alterando o pedido), só no restaurante E2E
+export async function forceStatus(restaurantId, orderNumber, status) {
+  await withDatabase((db) =>
+    db.query("update orders set status = $1 where restaurant_id = $2 and order_number = $3", [
+      status,
+      restaurantId,
+      orderNumber,
+    ]),
+  );
 }

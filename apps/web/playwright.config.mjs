@@ -28,7 +28,13 @@ export default defineConfig({
       port: API_PORT,
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { NODE_ENV: "test", PORT: String(API_PORT), HOST: "127.0.0.1" },
+      // APP_URL só aqui: o Origin do navegador (127.0.0.1:3400) precisa casar com ele (ADR 0002)
+      env: {
+        NODE_ENV: "test",
+        PORT: String(API_PORT),
+        HOST: "127.0.0.1",
+        APP_URL: `http://127.0.0.1:${WEB_PORT}`,
+      },
     },
     {
       command: `pnpm exec next build && pnpm exec next start -p ${WEB_PORT} -H 127.0.0.1`,

@@ -16,6 +16,7 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
         <Link href="/painel" className="text-muted-foreground">
           ← {restaurant?.name ?? "Restaurantes"}
         </Link>
+        <Link href={`/painel/${restaurantId}/pedidos`}>Pedidos</Link>
         <Link href={`/painel/${restaurantId}/categorias`}>Categorias</Link>
         <Link href={`/painel/${restaurantId}/produtos`}>Produtos</Link>
         <Link href={`/painel/${restaurantId}/adicionais`}>Adicionais</Link>
