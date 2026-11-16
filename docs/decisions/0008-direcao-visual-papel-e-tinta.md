@@ -81,7 +81,7 @@ A `taste-skill` é aprovada **só para princípios aplicáveis a um produto SaaS
 ## Consequências
 
 - A F7-T4a é inserida entre a F7-T4 e a F7-T5 e altera só `apps/web` (tokens, componentes e telas). Nenhum contrato da API, permissão ou transição de pedido muda; nenhuma dependência npm é adicionada.
-- O trabalho de tabelas estreitas da Equipe e da plataforma (B-02) é antecipado para a F7-T4a, e as F7-T5 e F7-T6 passam a confirmar e a tratar as demais telas.
+- A F7-T4a define o padrão visual compartilhado de tabelas e listas em telas estreitas e as correções das telas expressamente incluídas nela. A correção completa do B-02 (Equipe e plataforma) e as demais tabelas e listas permanecem na F7-T5 e na F7-T6, que aplicam e validam esse padrão; a F7-T4a não reformula essas telas.
 - Os 63 seletores protegidos do E2E (F7-T1, seção 6) devem permanecer; as mudanças de rótulo ou de estrutura que os afetem exigem atualização do teste na mesma tarefa.
 - As capturas de 2026-11-16 servem de "antes"; a largura de 1024 px, que não estava nelas, é capturada antes de qualquer alteração.
 - O custo é um acabamento visual de toda a interface antes da F7-T5, com risco de regressão visual e de acessibilidade; por isso a tarefa exige comparação com os mesmos estados e dados e inspeção individual das capturas.
