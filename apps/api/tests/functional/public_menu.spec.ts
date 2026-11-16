@@ -357,3 +357,124 @@ test.group('Cardápio público | isolamento', (group) => {
     }
   })
 })
+
+// ROADMAP 8.4: ?mesa= devolve o nome da mesa só quando ela vale; nunca é erro nem oráculo.
+test.group('Cardápio público | ?mesa=', (group) => {
+  group.each.setup(resetState)
+
+  async function table(restaurantId: string, identifier: string, name: string, extra = {}) {
+    await db
+      .table('restaurant_tables')
+      .insert({ restaurant_id: restaurantId, identifier, name, ...extra })
+  }
+
+  test('mesa ativa do restaurante: devolve só o nome, o resto da resposta não muda', async ({
+    client,
+    assert,
+  }) => {
+    const restaurant = await createRestaurant({ slug: 'com-mesa' })
+    await product(restaurant.id, await category(restaurant.id, 'Lanches'), 'Burger')
+    await table(restaurant.id, 'abcde12345', 'Mesa 5')
+
+    const without = await client.get(url('com-mesa'))
+    const withTable = await client.get(`${url('com-mesa')}?mesa=abcde12345`)
+    withTable.assertStatus(200)
+    assert.deepEqual(withTable.body().data.table, { name: 'Mesa 5' })
+    assert.notProperty(without.body().data, 'table')
+    const rest = { ...withTable.body().data }
+    delete rest.table
+    assert.deepEqual(rest, without.body().data)
+    assert.notInclude(JSON.stringify(withTable.body()), 'abcde12345')
+  })
+
+  test('sem o parâmetro ou com valor inválido: 200 sem table', async ({ client, assert }) => {
+    const restaurant = await createRestaurant({ slug: 'com-mesa' })
+    await table(restaurant.id, 'abcde12345', 'Mesa 5')
+
+    const invalid = [
+      '',
+      '?mesa=',
+      '?mesa=abc',
+      '?mesa=ABCDE12345',
+      '?mesa=abcde123456',
+      '?mesa=abcde1234%20',
+      "?mesa=abcde12345'%20OR%20'1'='1",
+      '?mesa=abcde12345&mesa=abcde12345',
+      '?mesa[]=abcde12345',
+      '?mesa[x]=abcde12345',
+      '?mesa=inexistent',
+    ]
+    for (const query of invalid) {
+      const response = await client.get(`${url('com-mesa')}${query}`)
+      response.assertStatus(200)
+      assert.notProperty(response.body().data, 'table', query)
+    }
+  })
+
+  test('mesa inativa, inexistente e consumo no local desabilitado respondem igual: sem table', async ({
+    client,
+    assert,
+  }) => {
+    const restaurant = await createRestaurant({ slug: 'com-mesa' })
+    await table(restaurant.id, 'inativa001', 'Mesa Inativa', { is_active: false })
+    await table(restaurant.id, 'ativa00001', 'Mesa Ativa')
+
+    const inactive = await client.get(`${url('com-mesa')}?mesa=inativa001`)
+    const missing = await client.get(`${url('com-mesa')}?mesa=naoexist01`)
+    assert.deepEqual(inactive.body(), missing.body())
+    assert.notProperty(inactive.body().data, 'table')
+
+    await db.from('restaurants').where('id', restaurant.id).update({ accepts_dine_in: false })
+    const disabled = await client.get(`${url('com-mesa')}?mesa=ativa00001`)
+    disabled.assertStatus(200)
+    assert.notProperty(disabled.body().data, 'table')
+  })
+
+  test('mesa de outro restaurante não vale; o mesmo identificador em dois restaurantes resolve cada um no seu', async ({
+    client,
+    assert,
+  }) => {
+    const a = await createRestaurant({ slug: 'restaurante-a' })
+    const b = await createRestaurant({ slug: 'restaurante-b' })
+    await table(b.id, 'soambdoisb', 'Mesa Secreta de B')
+    await table(a.id, 'repetida01', 'Mesa de A')
+    await table(b.id, 'repetida01', 'Mesa de B')
+
+    const foreign = await client.get(`${url('restaurante-a')}?mesa=soambdoisb`)
+    foreign.assertStatus(200)
+    assert.notProperty(foreign.body().data, 'table')
+    assert.notInclude(JSON.stringify(foreign.body()), 'Secreta')
+
+    const fromA = await client.get(`${url('restaurante-a')}?mesa=repetida01`)
+    const fromB = await client.get(`${url('restaurante-b')}?mesa=repetida01`)
+    assert.deepEqual(fromA.body().data.table, { name: 'Mesa de A' })
+    assert.deepEqual(fromB.body().data.table, { name: 'Mesa de B' })
+  })
+
+  test('a consulta da mesa filtra por restaurant_id e o restaurante inativo continua 404', async ({
+    client,
+    assert,
+  }) => {
+    const a = await createRestaurant({ slug: 'restaurante-a' })
+    const b = await createRestaurant({ slug: 'restaurante-b' })
+    await table(a.id, 'abcde12345', 'Mesa 5')
+    await table(b.id, 'outra00001', 'Mesa de B')
+
+    const queries: { sql: string; bindings: unknown[] }[] = []
+    const knex = db.connection().getWriteClient()
+    const listener = (q: { sql: string; bindings?: unknown[] }) =>
+      queries.push({ sql: q.sql, bindings: q.bindings ?? [] })
+    knex.on('query', listener)
+    ;(await client.get(`${url('restaurante-a')}?mesa=abcde12345`)).assertStatus(200)
+    knex.off('query', listener)
+
+    const tableQueries = queries.filter((q) => /"restaurant_tables"/.test(q.sql))
+    assert.lengthOf(tableQueries, 1)
+    assert.include(tableQueries[0].sql, 'restaurant_id')
+    assert.include(tableQueries[0].bindings, a.id)
+    assert.notInclude(tableQueries[0].bindings, b.id)
+
+    await db.from('restaurants').where('id', a.id).update({ is_active: false })
+    ;(await client.get(`${url('restaurante-a')}?mesa=abcde12345`)).assertStatus(404)
+  })
+})

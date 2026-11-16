@@ -3,12 +3,31 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { imageUrl } from '#support/images'
 import { findActiveRestaurantBySlug } from '#support/public_restaurant'
 
+// Mesma forma do identificador gerado pelo servidor (table_identifier.ts)
+const TABLE_IDENTIFIER = /^[a-z0-9]{10}$/
+
 // Rota pública (ADR 0002): sem sessão. O tenant vem do slug; slug inválido, inexistente ou de
 // restaurante inativo respondem o mesmo 404. Só dados públicos: nada de ids de restaurante,
 // is_active, sort_order, timestamps ou itens indisponíveis.
 export default class PublicMenuController {
-  async show({ params }: HttpContext) {
+  async show({ params, request }: HttpContext) {
     const restaurant = await findActiveRestaurantBySlug(String(params.slug))
+
+    // ?mesa= é só contexto (ROADMAP 8.4, CLAUDE.md seção 8): mesa inválida, inativa, de outro
+    // restaurante ou com consumo no local desabilitado é ignorada, sem erro e sem revelar nada
+    const identifier = request.qs().mesa
+    const table =
+      restaurant.accepts_dine_in &&
+      typeof identifier === 'string' &&
+      TABLE_IDENTIFIER.test(identifier)
+        ? await db
+            .from('restaurant_tables')
+            .where('restaurant_id', restaurant.id)
+            .where('identifier', identifier)
+            .where('is_active', true)
+            .select('name')
+            .first()
+        : null
 
     const categories = await db
       .from('categories')
@@ -67,6 +86,7 @@ export default class PublicMenuController {
 
     return {
       data: {
+        ...(table ? { table: { name: table.name } } : {}),
         restaurant: {
           name: restaurant.name,
           slug: restaurant.slug,
