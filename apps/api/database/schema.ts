@@ -8,7 +8,16 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class CategorySchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'isActive', 'name', 'restaurantId', 'sortOrder', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'description',
+    'id',
+    'isActive',
+    'name',
+    'restaurantId',
+    'sortOrder',
+    'updatedAt',
+  ] as const
   $columns = CategorySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -29,7 +38,16 @@ export class CategorySchema extends BaseModel {
 }
 
 export class OrderItemAddonSchema extends BaseModel {
-  static $columns = ['addonName', 'createdAt', 'id', 'orderItemId', 'productAddonId', 'restaurantId', 'subtotal', 'unitPrice'] as const
+  static $columns = [
+    'addonName',
+    'createdAt',
+    'id',
+    'orderItemId',
+    'productAddonId',
+    'restaurantId',
+    'subtotal',
+    'unitPrice',
+  ] as const
   $columns = OrderItemAddonSchema.$columns
   @column()
   declare addonName: string
@@ -50,7 +68,17 @@ export class OrderItemAddonSchema extends BaseModel {
 }
 
 export class OrderItemSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'orderId', 'productId', 'productName', 'quantity', 'restaurantId', 'subtotal', 'unitPrice'] as const
+  static $columns = [
+    'createdAt',
+    'id',
+    'orderId',
+    'productId',
+    'productName',
+    'quantity',
+    'restaurantId',
+    'subtotal',
+    'unitPrice',
+  ] as const
   $columns = OrderItemSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -73,7 +101,15 @@ export class OrderItemSchema extends BaseModel {
 }
 
 export class OrderStatusHistorySchema extends BaseModel {
-  static $columns = ['changedByUserId', 'createdAt', 'id', 'newStatus', 'orderId', 'previousStatus', 'restaurantId'] as const
+  static $columns = [
+    'changedByUserId',
+    'createdAt',
+    'id',
+    'newStatus',
+    'orderId',
+    'previousStatus',
+    'restaurantId',
+  ] as const
   $columns = OrderStatusHistorySchema.$columns
   @column()
   declare changedByUserId: string | null
@@ -92,7 +128,25 @@ export class OrderStatusHistorySchema extends BaseModel {
 }
 
 export class OrderSchema extends BaseModel {
-  static $columns = ['createdAt', 'customerName', 'customerPhone', 'fulfillmentType', 'id', 'idempotencyHash', 'idempotencyKey', 'notes', 'orderNumber', 'paymentMethod', 'restaurantId', 'status', 'tableId', 'tableName', 'total', 'trackingToken', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'customerName',
+    'customerPhone',
+    'fulfillmentType',
+    'id',
+    'idempotencyHash',
+    'idempotencyKey',
+    'notes',
+    'orderNumber',
+    'paymentMethod',
+    'restaurantId',
+    'status',
+    'tableId',
+    'tableName',
+    'total',
+    'trackingToken',
+    'updatedAt',
+  ] as const
   $columns = OrderSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -131,7 +185,16 @@ export class OrderSchema extends BaseModel {
 }
 
 export class ProductAddonSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'isAvailable', 'name', 'price', 'restaurantId', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'description',
+    'id',
+    'isAvailable',
+    'name',
+    'price',
+    'restaurantId',
+    'updatedAt',
+  ] as const
   $columns = ProductAddonSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -165,7 +228,19 @@ export class ProductProductAddonSchema extends BaseModel {
 }
 
 export class ProductSchema extends BaseModel {
-  static $columns = ['categoryId', 'createdAt', 'description', 'id', 'image', 'isAvailable', 'name', 'price', 'restaurantId', 'sortOrder', 'updatedAt'] as const
+  static $columns = [
+    'categoryId',
+    'createdAt',
+    'description',
+    'id',
+    'image',
+    'isAvailable',
+    'name',
+    'price',
+    'restaurantId',
+    'sortOrder',
+    'updatedAt',
+  ] as const
   $columns = ProductSchema.$columns
   @column()
   declare categoryId: string
@@ -192,7 +267,15 @@ export class ProductSchema extends BaseModel {
 }
 
 export class RestaurantTableSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'identifier', 'isActive', 'name', 'restaurantId', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'id',
+    'identifier',
+    'isActive',
+    'name',
+    'restaurantId',
+    'updatedAt',
+  ] as const
   $columns = RestaurantTableSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -211,7 +294,15 @@ export class RestaurantTableSchema extends BaseModel {
 }
 
 export class RestaurantUserSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'isActive', 'restaurantId', 'role', 'updatedAt', 'userId'] as const
+  static $columns = [
+    'createdAt',
+    'id',
+    'isActive',
+    'restaurantId',
+    'role',
+    'updatedAt',
+    'userId',
+  ] as const
   $columns = RestaurantUserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -230,7 +321,23 @@ export class RestaurantUserSchema extends BaseModel {
 }
 
 export class RestaurantSchema extends BaseModel {
-  static $columns = ['acceptsCard', 'acceptsCash', 'acceptsDineIn', 'acceptsPickup', 'acceptsPix', 'createdAt', 'description', 'id', 'isActive', 'logo', 'name', 'nextOrderNumber', 'phone', 'slug', 'updatedAt'] as const
+  static $columns = [
+    'acceptsCard',
+    'acceptsCash',
+    'acceptsDineIn',
+    'acceptsPickup',
+    'acceptsPix',
+    'createdAt',
+    'description',
+    'id',
+    'isActive',
+    'logo',
+    'name',
+    'nextOrderNumber',
+    'phone',
+    'slug',
+    'updatedAt',
+  ] as const
   $columns = RestaurantSchema.$columns
   @column()
   declare acceptsCard: boolean
@@ -278,7 +385,16 @@ export class SessionSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'id', 'isPlatformAdmin', 'mustChangePassword', 'name', 'password', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'email',
+    'id',
+    'isPlatformAdmin',
+    'mustChangePassword',
+    'name',
+    'password',
+    'updatedAt',
+  ] as const
   $columns = UserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
