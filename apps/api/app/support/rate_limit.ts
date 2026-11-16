@@ -21,6 +21,14 @@ export async function throttleLogin(ip: string, email: string) {
   )
 }
 
+/** Criação de pedido: 5 por minuto por IP e restaurante (ROADMAP seção 6). */
+export async function throttleOrderCreation(ip: string, restaurantId: string) {
+  await consume(
+    `order:ip-restaurant:${ip}:${restaurantId}`,
+    Number(env.get('LIMITER_ORDER_PER_MINUTE', 5))
+  )
+}
+
 export async function throttlePasswordChange(userId: string) {
   await consume(`password:${userId}`, Number(env.get('LIMITER_PASSWORD_PER_MINUTE', 5)))
 }

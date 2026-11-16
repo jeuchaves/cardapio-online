@@ -39,6 +39,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   LIMITER_LOGIN_IP_EMAIL_PER_MINUTE: Env.schema.number.optional(),
   LIMITER_LOGIN_IP_PER_MINUTE: Env.schema.number.optional(),
   LIMITER_PASSWORD_PER_MINUTE: Env.schema.number.optional(),
+  LIMITER_ORDER_PER_MINUTE: Env.schema.number.optional(),
 
   // Imagens (ADR 0003). Padrões: pasta storage e URLs relativas em /uploads
   UPLOADS_ROOT: Env.schema.string.optional(),
