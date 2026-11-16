@@ -1,7 +1,7 @@
 # ROADMAP — MVP do Cardápio Digital
 
-> Status: **decisões de produto aprovadas em 2026-11-15**. Restam duas questões em aberto (seção 11.2): validação jurídica da retenção de dados e escolha do provedor de object storage.
-> Documento de planejamento: nenhum código, migration ou configuração foi criado.
+> Status: **decisões de produto aprovadas em 2026-11-15**; **Fases 0 a 6 concluídas** e **reorganização das Fases 6, 7 e 8 aprovada em 2026-11-16** (seção 10). Questões em aberto na seção 11.2: validação jurídica da retenção de dados, infraestrutura e armazenamento de imagens, parâmetros do hash de senha e demais itens de produção.
+> Documento de planejamento e acompanhamento das fases. Referências a F6-T4 a F6-T8 em ADRs e em outros documentos devem ser lidas pela tabela de equivalência ao fim da Fase 8 (seção 10).
 > Referência principal: [`CLAUDE.md`](../CLAUDE.md). Em caso de conflito, o `CLAUDE.md` prevalece.
 
 ## Sumário
@@ -591,13 +591,13 @@ Dados pessoais tratados: nome e telefone do cliente, observações livres, e nom
   - a consulta é por igualdade exata na coluna única, sem listagem nem busca parcial;
   - o frontend não envia o token a terceiros (sem analytics ou scripts externos nessas páginas).
 - O endpoint público devolve só o necessário (seção 8.4): **sem** telefone, observações, IDs internos nem dados de outros pedidos.
-- Backups com acesso restrito, fora de pasta pública; restauração testada (F6).
+- Backups com acesso restrito, fora de pasta pública; restauração testada (F8-T3, antiga F6-T5).
 
 ### 7.4 Retenção e anonimização (proposta, sujeita à validação jurídica)
 
 - **Proposta:** reter nome e telefone por **180 dias** após a conclusão (`completed`) ou o cancelamento (`cancelled`) do pedido; depois, anonimizar nome e telefone (e as observações, que podem conter dados pessoais), preservando os dados comerciais (itens, valores, status, datas).
 - **O prazo de 180 dias e o procedimento de anonimização precisam ser validados pelo responsável jurídico e do negócio, inclusive quanto a obrigações legais ou fiscais de retenção, antes da produção.**
-- **Até essa validação, é proibido implementar exclusão ou anonimização, manual ou automática.** A tarefa F6-T6 só é executada depois dela.
+- **Até essa validação, é proibido implementar exclusão ou anonimização, manual ou automática.** A tarefa F8-T4 (antiga F6-T6) só é executada depois dela.
 - Depois da validação, começar por procedimento manual documentado. Rotina agendada só com necessidade comprovada e aprovação.
 - Solicitações de titulares (acesso, correção, exclusão): procedimento a definir junto com a validação jurídica.
 
@@ -829,21 +829,127 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 | F5-T9 | Telas de pedidos | F5-T6, F5-T7 | `apps/web` | Lista, detalhe e transições | Sem lógica de negócio no front | Teste de fluxo: restaurante atualiza status | Mudança de status aparece no acompanhamento |
 | F5-T10 | Testes de isolamento de pedidos | F5-T6, F5-T7 | `tests` | Suíte A × B: leitura, alteração e exclusão (exclusão inexistente: `404` ou `405`) | Seção 6 | A suíte | Todos os cenários passam |
 
-### Fase 6 — Qualidade e publicação
+### Fase 6 — Qualidade e segurança local
 
-**Entregas:** testes automatizados, teste do fluxo completo de pedido, revisão de segurança, configuração de produção, Nginx, backup e restauração, documentação de implantação, validação jurídica da retenção.
-**Critério de conclusão:** fluxo principal funciona em homologação; testes obrigatórios passam; backup e restauração testados; validação jurídica concluída; aplicação pronta para publicação.
+> **Reorganizada em 2026-11-16.** A Fase 6 passou a cobrir só o que se executa e valida em ambiente local. As tarefas F6-T4 a F6-T8 (infraestrutura de produção) foram **transferidas para a Fase 8** sem perder requisitos, decisões ou dependências. Os identificadores F6-T4 a F6-T8 ficam reservados e **não são reutilizados**; a tabela de equivalência está no fim da Fase 8. Nenhuma tarefa concluída foi renumerada.
+
+**Entregas:** suíte de testes fechada, fluxo E2E principal validado em ambiente limpo e revisão de segurança estática, com achados classificados.
+**Critério de conclusão (atingido):** testes obrigatórios passando; E2E em clone limpo; relatório de segurança registrado, com os itens que dependem de infraestrutura transferidos à Fase 8.
+**Situação:** **concluída** em 2026-11-16 (F6-T1 a F6-T3).
 
 | ID | Objetivo | Dep. | Módulos | Implementação | Regras | Testes | Aceite |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F6-T1 | Fechar a suíte de testes | F5 | `tests` | Conferir cobertura: isolamento, FKs compostas e constraints, cálculo, transações, snapshots, transições, idempotência, permissões `owner`/`staff`, autenticação | `CLAUDE.md` seção 12 | Execução completa | Todos passam |
 | F6-T2 | Fluxo E2E principal | F5-T8, F5-T9 | `apps/web` | Playwright: abrir cardápio, montar carrinho, enviar pedido, restaurante atualiza status, cliente vê o status | Só o fluxo principal | O próprio teste | Passa em ambiente limpo |
 | F6-T3 | Revisão de segurança | F6-T1 | todos | Checklist das seções 6 e 7: cookies, CSRF, uploads, headers, logs (sem token, senha, telefone), segredos, dependências | — | Itens verificados um a um | Checklist sem pendências abertas |
-| F6-T4 | Configuração de produção | F6-T3 | Docker, Nginx | Compose de produção, Nginx com HTTPS, mesma origem, headers, limites complementares, redação de log de tokens | Sem Redis, worker ou serviços extras; uma instância da API | Verificação em homologação | Aplicação acessível por HTTPS |
-| F6-T5 | Backup e restauração | F6-T4 | infraestrutura | Backup do PostgreSQL e das imagens; acesso restrito | Backup contém dados pessoais | Restaurar em ambiente limpo e conferir | Restauração bem-sucedida e documentada |
-| F6-T6 | Retenção e anonimização | F6-T5, validação jurídica (11.2) | docs, API | **Somente após a validação**, procedimento manual documentado de anonimização | Proibido implementar antes da validação; sem automação | Executar em base de teste e conferir que dados comerciais permanecem | Procedimento validado pelo responsável |
-| F6-T7 | Documentação de implantação | F6-T4, F6-T5 | `README.md`/docs | Deploy, variáveis, backup, restauração, atualização, limitação do rate limit em memória | — | Seguir o documento em ambiente limpo | Deploy reproduzível |
-| F6-T8 | Homologação | F6-T2 a F6-T6 | — | Rodar o fluxo completo em homologação | Publicação exige validação jurídica concluída | E2E em homologação | Aprovação do usuário para publicação |
+
+**Resultado das tarefas concluídas:**
+
+| ID | Resultado | Registro |
+| --- | --- | --- |
+| F6-T1 | Matriz de cobertura requisito × teste; 5 lacunas fechadas com 7 testes; suíte da API com 334 testes (com o `?mesa=`) | [`F6-T1-matriz-de-cobertura.md`](F6-T1-matriz-de-cobertura.md); commits `f450c71` e `953271e` |
+| F6-T2 | E2E validado em clone isolado a partir do HEAD, com `pnpm install --frozen-lockfile`, Chromium e PostgreSQL isolado; hoje 14 testes | [matriz de cobertura, seção 1](F6-T1-matriz-de-cobertura.md); execução de 2026-11-16, com 13 testes na ocasião |
+| F6-T3 | Revisão de segurança estática: S-01 a S-09, controles sem achados, itens dependentes de infraestrutura | [`F6-T3-relatorio-de-seguranca.md`](F6-T3-relatorio-de-seguranca.md); commit `c4e4fa1` |
+
+**Entregas adicionais da fase:**
+- `GET /public/restaurants/:slug?mesa=` (contrato da seção 8.4), commits `3bad00c` e `2838ad0`.
+- Pacote A da revisão de segurança (`poweredByHeader: false` no Next e `Content-Security-Policy` em `/uploads`), commit `68c6a23`.
+- Formatação do `schema.ts` e sua exclusão do Prettier, commits `8fb322f` e `d130f34`.
+
+**Achados da revisão (F6-T3) e destino:**
+
+| Achado | Situação | Destino |
+| --- | --- | --- |
+| S-01 `trustProxy` ausente | bloqueio para produção atrás de proxy | F8-T2 |
+| S-02 headers de segurança | `X-Powered-By` resolvido; demais headers pendentes | F8-T2 |
+| S-03 custo do hash (scrypt) | decisão técnica registrada, sem implementação | F8-T2 |
+| S-04 upload | CSP em `/uploads` resolvido; limites de corpo pendentes | F8-T2 |
+| S-05 dependências (`minimatch`, `deepmerge`) | sem `pnpm override`; acompanhar upstream | contínuo, reavaliar com `pnpm audit` (F8-T5) |
+| S-06 senha temporária ao `platform_admin` | **risco não aceito**, aberto | solução futura (ver [evoluções futuras da API](evolucoes-futuras-da-api.md)) |
+| S-07 skills de terceiros versionadas | pendente | F8-T2 (`.dockerignore`) |
+| S-08 `NODE_ENV` e `APP_URL` em https | pendente | F8-T2 e F8-T5 |
+| S-09 enumeração de e-mail | aceito provisoriamente (seção 5.2) | — |
+
+### Fase 7 — UX e experiência do produto
+
+**Objetivo:** interface clara, consistente, responsiva e eficiente para os quatro perfis (cliente, `owner`, `staff` e `platform_admin`), com prioridade para a facilidade de uso e a velocidade operacional em restaurantes de pequeno porte. Sem complexidade visual, indicadores sem utilidade ou recursos fora do escopo.
+**Entregas:** fundação de UI compartilhada, operação de pedidos mais rápida, cardápio e acompanhamento do cliente refinados, cadastros e administração mais simples, auditoria de acessibilidade e responsividade, regressão do fluxo principal (E2E).
+**Critério de conclusão:** F7-T1 a F7-T8 aceitas; suítes completas passando; nenhuma pendência de severidade alta na auditoria final; contratos de API, permissões, transições de status, segurança e privacidade inalterados.
+**Dependência da fase:** Fase 6 concluída. Diagnóstico base: leitura do código do frontend em 2026-11-16 (18 telas e 13 componentes próprios), a ser confirmada visualmente na F7-T1.
+
+**Princípios (valem para todas as tarefas):**
+
+- Preservar contratos de API, permissões (inclusive a restrição de disponibilidade para o `staff`), transições de status, segurança e privacidade. A página do token do pedido continua sem scripts, fontes ou imagens de terceiros, com `Cache-Control: no-store` e `Referrer-Policy: no-referrer`.
+- Mudanças de negócio ou de backend são propostas à parte, em [`evolucoes-futuras-da-api.md`](evolucoes-futuras-da-api.md), e **não** entram na F7.
+- Identidade visual **neutra**: sem novos tokens de cor. O status do pedido se distingue por texto, ícone e variantes já existentes.
+- **Sem dependência npm nova.** O toast é o do shadcn para Base UI (o `@base-ui/react` 1.9.0 já inclui `@base-ui/react/toast`). Antes de executar o CLI, conferir o registro e os arquivos existentes; se qualquer dependência npm for necessária, interromper e pedir aprovação; não substituir componentes existentes sem verificar a compatibilidade com Base UI.
+- ESLint e a formatação atual; **sem Prettier no frontend**. Preservar o fim de linha de cada arquivo e conferir o diff ignorando CR antes de commitar.
+- Abstração nova só com repetição real: pelo menos 3 telas com código idêntico (CLAUDE.md seção 11).
+- A skill `web-design-guidelines` é usada somente na F7-T1 e na F7-T7, sem instalar dependências.
+- O E2E permanente (Playwright) fica restrito ao fluxo principal e às suas variantes (CLAUDE.md seções 3 e 12; ADR 0005). Verificações de tamanho de tela, acessibilidade e fluxos auxiliares (cadastros, plataforma, login, impressão, indicador de pedido novo) usam scripts locais fora do repositório ou roteiro manual, sem ampliar o E2E permanente.
+- Erros de formulário continuam **inline e persistentes**; o toast é só para confirmação de sucesso.
+
+**Definição de pronto comum:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm e2e` passando; commits pequenos e focados; sem push sem autorização.
+
+**Critérios de acessibilidade (aceite de todas as tarefas):**
+
+| ID | Critério |
+| --- | --- |
+| A1 | Fluxos principais completos só por teclado, com foco visível e ordem lógica |
+| A2 | Todo campo tem rótulo, e o erro fica associado ao campo (`aria-describedby`, `aria-invalid`) |
+| A3 | Botão só com ícone tem nome acessível |
+| A4 | Mudanças dinâmicas são anunciadas (`role="status"`, `role="alert"` ou `aria-live`), inclusive o toast |
+| A5 | Nada depende só de cor: status e erros têm texto ou ícone |
+| A6 | Alvo de toque de pelo menos 44 px nas ações principais no celular e de pelo menos 24 px nas demais |
+| A7 | Sem rolagem horizontal em 320, 390, 768 e 1280 px; tabelas podem usar rolagem horizontal controlada |
+| A8 | Contraste AA (4,5:1 para texto e 3:1 para componentes) |
+| A9 | `<title>` próprio por tela e hierarquia de títulos |
+| A10 | Erros de formulário persistentes e inline |
+
+Verificação sem dependência nova: scripts locais com o Playwright já instalado, fora do repositório (quatro tamanhos de tela e `ariaSnapshot`), e roteiro manual de teclado. O E2E permanente segue restrito ao fluxo principal.
+
+| ID | Objetivo | Dep. | Módulos | Implementação | Regras | Testes | Aceite |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F7-T1 | Diagnóstico e linha de base | F6 | `apps/web` (somente leitura), `docs` | Capturas das 18 telas em 320, 390, 768 e 1280 px (script local fora do repositório); auditoria com `web-design-guidelines` nas telas principais; inventário dos seletores do E2E que não podem quebrar (hoje 63); conferência do registro do toast e dos arquivos existentes; confirmação visual dos achados do diagnóstico | Nenhuma alteração de código; nenhuma dependência | Execução das capturas e da auditoria | Relatório de linha de base com evidências; lista de seletores protegidos; toast confirmado sem pacote npm novo, ou o motivo contrário |
+| F7-T2 | Fundação de UI | F7-T1 | `apps/web` | Toast do shadcn para Base UI com `Toaster` no layout raiz; hook `usePageTitle` e título por tela; `ui/select` no lugar do `select` nativo e componentes de radio, textarea e checkbox no mesmo padrão; `Field` associando o erro ao campo; `loading.tsx`, `error.tsx` e `not-found` por segmento (raiz, painel, plataforma, carrinho) e padrão único de carregando, vazio e erro; estrutura do painel com navegação responsiva (`aria-label`, `aria-current`), salto para o conteúdo, nome do restaurante no cabeçalho e largura útil nas telas largas; variante `lg` do botão em 44 px nas ações principais | Sem mudança de comportamento ou de contrato; sem extração de lógica de listas (vai para a F7-T5); critérios A1 a A9 | E2E permanente atual inalterado; teclado e anúncio do toast por roteiro manual ou script local | Os 14 testes E2E passam sem alteração de comportamento; nenhum controle nativo restante nas telas migradas; toast anunciado por tecnologia assistiva |
+| F7-T3 | Operação de pedidos | F7-T2 | `apps/web` | Lista em visões, uma consulta por vez: **"Novos" (pendente, padrão)**, andamento por status e "Todos", com botões alternáveis (`aria-pressed`); **avanço de status direto da lista** (mesmo `PATCH`, mesmas validações, sem confirmação adicional), com o número do pedido no nome do botão, alvo mínimo de 44 px, toast com o resultado e tratamento do conflito 409 já existente; cancelamento só no detalhe, com confirmação; **indicador de pedido novo** (destaque do item, contagem no título da aba, anúncio em região `aria-live`, sem som), com atualização só enquanto a aba estiver visível e atualização imediata ao voltar a ela; tempo decorrido no cartão; status por texto, ícone e variantes existentes; detalhe com `tel:` e layout aproveitando a largura | Contrato inalterado; sem contadores agregados, sem consultas extras periódicas e sem polling em segundo plano (ADR 0002, adendo 5); transições idênticas; cartão sem mesa nem quantidade de itens (dependem do contrato, ver evoluções futuras) | E2E permanente: avanço de status pela lista (variante do fluxo principal "restaurante atualiza o status"); indicador de pedido novo, conflito, cancelamento no detalhe, teclado e 320 px por roteiro manual ou script local | Staff avança um pedido sem sair da lista; indicador funciona com a aba visível; critérios A1 a A10, com atenção a A6 e A7 em 320 px |
+| F7-T4 | Experiência do cliente | F7-T2 | `apps/web` | Cardápio: botão de adicionar rápido para produto sem adicionais (1 toque) e destaque da categoria atual na rolagem; `loading.tsx`; barra do carrinho com `safe-area`; **nome da mesa** a partir de `?mesa=` (a API já devolve `table.name`) e aviso de mesa inválida antes do envio; checkout com os controles padronizados; acompanhamento com progresso visual por etapas (texto e `aria-current="step"`), "atualizado há…" e botão de copiar o link | Sem scripts, fontes ou imagens de terceiros na página do token; `no-store` e `no-referrer` mantidos; total vindo da cotação (ADR 0001) | E2E permanente do fluxo de pedido e acompanhamento, com a variante da mesa pelo QR; aviso de mesa inválida, 320 px e teclado por roteiro manual ou script local | Fluxo de pedido completo nos quatro tamanhos de tela; cabeçalhos do token inalterados; critérios A1 a A10 |
+| F7-T5 | Catálogo e configuração do restaurante | F7-T2 | `apps/web` | Categorias, produtos, adicionais e mesas com formulário "Novo…" recolhido (aberto quando a lista está vazia) e texto de ajuda no campo de ordem; **extração de código somente se a comparação por diff mostrar trecho idêntico em pelo menos 3 telas**; folha de QR Codes imprimível, com o nome da mesa, por CSS de impressão e sem dependência; configurações com o link público e a indicação do QR do restaurante; equipe com tabela de rolagem horizontal controlada em 320 px | Permissões `owner` e `staff` inalteradas; sem reordenação por botões (mantém o campo numérico); sem mudança de contrato | Sem E2E permanente novo (fluxo auxiliar); as permissões seguem cobertas pelos testes da API; cadastros, impressão e 320 px por roteiro manual ou script local | Cadastros sem regressão; extração, se feita, com comparação documentada; critérios A1 a A10 |
+| F7-T6 | Plataforma, acesso e estrutura da aplicação | F7-T2 | `apps/web` | Confirmação ao desativar restaurante; checkboxes padronizados; página `/` sem o "API disponível" de desenvolvimento; login e troca de senha com mostrar e ocultar senha e foco no primeiro erro; `/painel` leva direto a Pedidos quando há um único restaurante e inclui os links de Pedidos e QR Codes | Regras de plataforma e de senha inalteradas | Sem E2E permanente novo (fluxos auxiliares); o login segue coberto como pré-condição do fluxo principal; confirmação de desativar, plataforma e 320 px por roteiro manual ou script local | Desativar exige confirmação; critérios A1 a A10 |
+| F7-T7 | Auditoria final de acessibilidade e responsividade | F7-T3 a F7-T6 | `apps/web` | Auditoria com `web-design-guidelines` em todas as telas; capturas e verificação em 320, 390, 768 e 1280 px; roteiro de teclado dos fluxos principais; contraste calculado a partir dos tokens por script local fora do repositório; zoom de 200% e movimento reduzido; correção das pendências encontradas | Sem funcionalidade nova; sem dependência | Scripts locais com o Playwright, fora do repositório (quatro tamanhos de tela e `ariaSnapshot`); roteiro manual de teclado | Nenhuma pendência de severidade alta; pendências baixas registradas e aprovadas; sem rolagem horizontal fora das tabelas controladas |
+| F7-T8 | Validação final e regressão | F7-T7 | `apps/web`, `tests`, `docs` | Suítes completas; E2E permanente do fluxo principal mantido e adaptado às mudanças (inclui o avanço de status pela lista); verificações de operação de pedidos, indicador, tamanhos de tela e demais fluxos por script local ou roteiro manual; roteiro manual em celular real; atualização da matriz de cobertura e relatório da fase, com aprovação | Contratos e regras inalterados | `pnpm lint`, `typecheck`, `test`, `build` e `e2e` | Tudo passando; relatório da fase aprovado; integração conforme autorização |
+
+### Fase 8 — Produção, infraestrutura e operação
+
+**Objetivo:** publicar a aplicação com segurança e operá-la. Reúne tudo que depende de servidor, domínio, DNS, HTTPS, armazenamento de imagens e infraestrutura, transferido da antiga Fase 6 sem perda de requisitos, decisões ou dependências.
+**Entregas:** configuração de produção, Nginx com HTTPS, backup e restauração, retenção e anonimização, documentação de implantação, homologação e publicação.
+**Critério de conclusão:** aplicação acessível por HTTPS com controles verificados na topologia real; logs sem dados sensíveis comprovados; backup restaurado com sucesso; validação jurídica concluída; aprovação do usuário para publicação.
+**Dependência da fase:** Fase 7 concluída para a execução. As decisões da F8-T1 podem ser tomadas antes, sem iniciar a execução.
+
+**Decisões já aprovadas para a fase:** Compose de produção em arquivo separado; Next.js em modo `standalone`; `trustProxy` restrito à rede confiável; headers básicos obrigatórios e `Content-Security-Policy` em modo Report-Only; backup com scripts, cron e criptografia externa; Node.js 24 LTS nas imagens; ADR 0006 (topologia de produção) e ADR 0007 (backup), quando chegar a hora.
+
+**Decisões ainda abertas:** servidor, sistema operacional, domínio e DNS (D1); provedor de object storage compatível com S3 (D2 e ABERTO-02); validação jurídica da retenção (ABERTO-01); estratégia final do `error_log`; parâmetros do hash de senha. Ver seção 11.2.
+
+| ID | Objetivo | Dep. | Módulos | Implementação | Regras | Testes | Aceite |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F8-T1 | Pré-requisitos e decisões de infraestrutura | — | infraestrutura, docs | Decidir D1 (servidor, sistema operacional, domínio e DNS) e D2 (provedor de object storage compatível com S3); registrar no ADR 0006 | Nenhuma decisão presumida | — | Decisões registradas e acesso ao ambiente disponível |
+| F8-T2 | Configuração de produção (antiga F6-T4) | F8-T1, F6-T3, F7 | Docker, Nginx, `apps/api`, `apps/web` | Compose de produção separado; Dockerfiles de API e web (Node.js 24 LTS, Next `standalone`, usuário não root, migrations como passo explícito do deploy); Nginx com HTTPS e mesma origem; `trustProxy` restrito à rede do Nginx, com `X-Forwarded-For` sobrescrito pelo Nginx (S-01); headers de segurança (HSTS, `nosniff`, `frame-ancestors`, `Referrer-Policy`, `Permissions-Policy`) e CSP Report-Only (S-02); redação do token no `access_log` e estratégia de `error_log` que não suprima erros importantes; limites de corpo por rota (6 MB só nas duas rotas de imagem) e `limit_req` (S-04); `.dockerignore` excluindo `.agents` e `.claude` (S-07); checagem de `NODE_ENV=production` e `APP_URL` em https (S-08); `mem_limit` da API; decisão e medição do scrypt (S-03); imagens em object storage compatível com S3, conforme D2 (o driver S3 ainda não foi validado contra nenhum provedor, adendo do ADR 0003) | Sem Redis, worker ou serviços extras; uma instância da API; PostgreSQL sem porta publicada; segredos só em variáveis de ambiente; não reduzir o custo do hash sem evidência | Verificação em homologação; **token sentinela** procurado no `access_log`, no `error_log` e nos logs dos containers; IP real com duas origens; `Secure` do cookie atrás de HTTPS; `/health` 200 e 503; upload e leitura de imagem | Aplicação acessível por HTTPS; nenhum token nos logs; `trustProxy` testado; redação do `access_log` e do `error_log` comprovada **antes** de liberar para produção |
+| F8-T3 | Backup e restauração (antiga F6-T5) | F8-T2 | infraestrutura | Backup do PostgreSQL (`pg_dump` em formato custom) e das imagens; scripts no repositório, agendamento por cron do host, criptografia externa, acesso restrito, retenção de cópias; ADR 0007 | O backup contém dados pessoais e hashes de senha; proposta, não aprovada: levar a retenção das cópias de backup ao responsável jurídico, fora do escopo aprovado do ABERTO-01 | Restaurar em ambiente limpo e conferir `migration:status`, contagens, login, cardápio público, imagem e acompanhamento de pedido | Restauração bem-sucedida e documentada |
+| F8-T4 | Retenção e anonimização (antiga F6-T6) | F8-T3, validação jurídica (ABERTO-01) | docs, API | **Somente após a validação**, procedimento manual documentado de anonimização de nome, telefone e observações dos pedidos concluídos ou cancelados | Proibido implementar antes da validação; sem automação; `customer_name` é `NOT NULL` e o telefone é obrigatório em `pickup` pelo `CHECK`, então usam valores fixos, não `NULL`; dados comerciais preservados | Executar em base de teste e conferir que os dados comerciais permanecem | Procedimento validado pelo responsável |
+| F8-T5 | Documentação de implantação (antiga F6-T7) | F8-T2, F8-T3 | `README.md`, `docs` | Deploy, variáveis, atualização, **rollback** (imagens com tag por commit e backup antes de cada migration), backup e restauração, checklist de produção (S-08), `pnpm audit` e acompanhamento das vulnerabilidades (S-05), limitação do rate limit em memória (zera a cada reinício; uma instância) e risco conhecido S-06 | — | Seguir o documento em ambiente limpo | Deploy reproduzível |
+| F8-T6 | Homologação e publicação (antiga F6-T8) | F8-T2 a F8-T4, F7-T8 | — | Rodar o fluxo completo em homologação (E2E), verificar `Secure` do cookie, IP real, redação dos logs e restauração de backup | Publicação exige a validação jurídica concluída | E2E em homologação | Aprovação do usuário para publicação |
+
+**Equivalência de identificadores** (referências antigas em ADRs, relatórios e matrizes devem ser lidas por esta tabela):
+
+| Antigo | Novo | Observação |
+| --- | --- | --- |
+| F6-T4 | F8-T2 | Inclui os achados S-01, S-02, S-03, S-04 (restante), S-07 e S-08 da revisão de segurança |
+| F6-T5 | F8-T3 | — |
+| F6-T6 | F8-T4 | Continua bloqueada pelo ABERTO-01 |
+| F6-T7 | F8-T5 | Passa a incluir rollback, S-05 e S-06 |
+| F6-T8 | F8-T6 | Passa a depender também da F7-T8 |
+| (novo) | F8-T1 | Reúne D1, D2 e ABERTO-02 |
+| F6-T1 a F6-T3 | permanecem na Fase 6 | Concluídas |
 
 ---
 
@@ -887,12 +993,33 @@ Login administrativo, lista de restaurantes (busca e filtro por situação), cad
 
 **Acréscimos de implementação decorrentes das decisões** (registrados para conferência): `users.must_change_password`; `restaurant_users.is_active`; `restaurants.accepts_*`; `orders.idempotency_hash`; `orders.table_name` (snapshot da mesa); `PATCH /auth/password`, `/tenant/:restaurantId/staff` e `/restaurant/settings`; `POST /platform/restaurants/:id/owner/reset-password`; tabela `sessions` (seção 4.3); `POST /public/restaurants/:slug/cart/quote` (seção 8.4); tarefa F5-T2a. Estes dois últimos alteram o contrato da API aprovado em F0-T4, por decisão do usuário.
 
+#### Decisões registradas (2026-11-16): reorganização das Fases 6 a 8
+
+| ID | Decisão |
+| --- | --- |
+| PEND-19 | Reorganização das fases: **Fase 6** passa a ser "Qualidade e segurança local" (F6-T1 a F6-T3 concluídas); **Fase 7**, "UX e experiência do produto"; **Fase 8**, "Produção, infraestrutura e operação". F6-T4 a F6-T8 foram transferidas para F8-T2 a F8-T6 (mais a nova F8-T1), com os requisitos, as decisões e as dependências preservados. Os identificadores antigos ficam reservados e nenhuma tarefa concluída é renumerada (seção 10). A Fase 7 foi incluída por pedido explícito do usuário, conforme o CLAUDE.md seção 13 (evoluções além da ordem de execução só por pedido explícito). |
+| PEND-20 | Na Fase 7, os contratos da API, as permissões (inclusive a restrição de disponibilidade para o `staff`) e as regras de negócio permanecem como estão. Mudanças de negócio ou de backend são propostas à parte e não entram na fase. |
+| PEND-21 | Avanço de status direto da lista de pedidos, sem confirmação adicional: o botão identifica o número do pedido, tem alvo mínimo de 44 px e o resultado aparece por toast. O cancelamento permanece no detalhe, com confirmação. |
+| PEND-22 | Aviso de pedido novo por indicador visual na interface e no título da aba, sem som. Atualização somente com a aba visível e atualização imediata ao voltar a ela, sem alterar o ADR 0002 (adendo 5, sem polling em segundo plano). |
+| PEND-23 | A visão padrão da lista de pedidos é "Novos" (pendentes). A reordenação de categorias e produtos por botões não será implementada na Fase 7: mantém-se o campo numérico com texto de ajuda. |
+| PEND-24 | Toast do shadcn para Base UI, com `Toaster` no layout raiz. Antes de executar o CLI, conferir o registro e os arquivos existentes; se for necessária qualquer dependência npm nova, interromper e solicitar aprovação; não substituir componentes existentes sem verificar a compatibilidade com Base UI. |
+| PEND-25 | Identidade visual neutra, sem novos tokens de cor: status por texto, ícone e variantes existentes. Mantêm-se o ESLint e a formatação atual, sem Prettier no frontend. |
+| PEND-26 | A skill `web-design-guidelines` é usada apenas na F7-T1 e na F7-T7, sem instalar dependências. As verificações de responsividade incluem 320 px; tabelas podem usar rolagem horizontal controlada. A acessibilidade é critério de aceite de todas as tarefas da Fase 7, e a F7-T7 é uma auditoria final. O E2E permanente (Playwright) permanece restrito ao fluxo principal e às suas variantes (CLAUDE.md seções 3 e 12 e ADR 0005); verificações de tamanho de tela, acessibilidade e fluxos auxiliares ficam em scripts locais ou roteiro manual. |
+| PEND-27 | Contadores agregados de pedidos por consultas periódicas não serão implementados. As necessidades de evolução da API ficam registradas em [`evolucoes-futuras-da-api.md`](evolucoes-futuras-da-api.md), sem implementação. |
+| PEND-28 | Decisões de produção já aprovadas (Fase 8): Compose de produção separado, Next.js `standalone`, `trustProxy` restrito, headers básicos com CSP Report-Only, backup com scripts, cron e criptografia externa, Node.js 24 LTS nas imagens, ADR 0006 (topologia) e ADR 0007 (backup). |
+| PEND-29 | Revisão de segurança da F6-T3: S-05 sem `pnpm override` (acompanhar o upstream e reavaliar com `pnpm audit`); S-06 **risco não aceito**, aberto para solução futura; S-09 aceito provisoriamente pelo contrato da seção 5.2; S-01 é bloqueio para produção atrás de proxy até a configuração e os testes de `trustProxy`; S-02 parcialmente resolvido (`X-Powered-By`) e os demais headers seguem na F8-T2. A redação de logs só é aceita com token sentinela comprovado no `access_log`, no `error_log` e nos logs dos containers. |
+
 ### 11.2 Questões em aberto
 
 | ID | Questão | Responsável | Bloqueia |
 | --- | --- | --- | --- |
-| ABERTO-01 | Validação jurídica e do responsável do negócio do prazo de retenção (180 dias), do procedimento de anonimização e de eventuais obrigações legais ou fiscais. | Responsável jurídico e do negócio | F6-T6, F6-T8 (publicação) |
-| ABERTO-02 | Escolha do provedor de object storage compatível com S3 para produção. | Usuário, na configuração de implantação | Produção (F6-T4); desenvolvimento usa disco local |
+| ABERTO-01 | Validação jurídica e do responsável do negócio do prazo de retenção (180 dias), do procedimento de anonimização e de eventuais obrigações legais ou fiscais. | Responsável jurídico e do negócio | F8-T4 e F8-T6 (publicação); antigas F6-T6 e F6-T8 |
+| ABERTO-02 | Provedor de object storage compatível com S3 para produção (D2), conforme PEND-12, o ADR 0003 e o CLAUDE.md seção 3. O driver S3 ainda não foi validado contra nenhum provedor. | Usuário, na configuração de implantação | F8-T2 (antiga F6-T4); desenvolvimento usa disco local |
+| ABERTO-03 | Servidor, sistema operacional, domínio e DNS (D1). | Usuário | F8-T1 e, em seguida, toda a Fase 8 |
+| ABERTO-04 | Estratégia final do `error_log` do Nginx: não pode suprimir erros importantes sem demonstrar como as falhas continuam detectáveis; a redação precisa ser comprovada com token sentinela em `access_log`, `error_log` e logs dos containers. | Usuário, com proposta técnica na F8-T2 | F8-T2 |
+| ABERTO-05 | Parâmetros do hash de senha (S-03): `N=2^17, r=8, p=1` é a opção preferencial; `maxMemory` de 256 MiB não aprovado; medir com Node.js 24 no servidor de produção ou em ambiente representativo; avaliar memória do container e concorrência de autenticação; definir a estratégia de rehash antes de mudar parâmetros; configurar antes da criação das primeiras contas reais. | Usuário, com medição na F8-T2 | F8-T2 |
+| ABERTO-06 | S-06: a senha temporária entregue ao `platform_admin` permite acesso à conta do `owner` e aos dados do restaurante. Risco não aceito; solução futura que separe a operação administrativa da autenticação do `owner`. | Usuário | Proposta futura (ver evoluções futuras da API) |
+| ABERTO-07 | S-05: vulnerabilidades transitivas de `minimatch` e `deepmerge` (sem versão corrigida para `deepmerge`). Sem `override`; acompanhar atualizações de `@adonisjs/*`. | Contínuo | Reavaliar com `pnpm audit` na F8-T5 |
 
 ### 11.3 Controle de mudanças
 
