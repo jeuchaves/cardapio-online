@@ -2,7 +2,7 @@
 
 Origem dos requisitos: `CLAUDE.md` seções 5 a 9 e 12; `docs/ROADMAP.md` seções 4.4, 5, 6 e 8; ADRs 0001 a 0005.
 Base: commit `d130f34` mais os testes adicionados na F6-T1 (seção 8).
-Suíte da API (Japa): **329 testes** (322 existentes + 7 novos), todos passando. Os caminhos abaixo são relativos a `apps/api/tests/functional/`.
+Suíte da API (Japa): **334 testes** (322 existentes + 7 da F6-T1 + 5 do `?mesa=`), todos passando. Os caminhos abaixo são relativos a `apps/api/tests/functional/`.
 
 Legenda: ✅ coberto · ➕ coberto por teste novo da F6-T1 · ⚠️ divergência de contrato (seção 9) · 🔜 fora do alcance dos testes da API, verificado em outra tarefa (seção 10).
 
@@ -143,14 +143,14 @@ Total: 7 testes em 2 arquivos novos, sem alterar nenhum código de produção.
 
 Distribuição: `audit_log.spec.ts` tem 4 testes (plataforma: ações e recusas; restaurante e equipe: ações e recusas) e `restaurant_lifecycle.spec.ts` tem 3 (restaurante inativo, ausência de rotas de exclusão, atributos do cookie).
 
-## 9. Divergência de contrato encontrada (não corrigida)
+## 9. Divergência de contrato encontrada (corrigida em tarefa separada)
 
-**`GET /public/restaurants/:slug?mesa=` não está implementado.**
+**`GET /public/restaurants/:slug?mesa=` não estava implementado.** O ROADMAP 8.4 prevê o parâmetro: se o identificador for válido, ativo e a modalidade `dine_in` estiver habilitada, a resposta traz `table: { name }`.
 
-- ROADMAP 8.4 e `docs/decisions/0003` preveem o parâmetro `mesa`: se o identificador for válido, ativo e a modalidade `dine_in` estiver habilitada, a resposta traz `table: { name }`.
-- `PublicMenuController` ignora o parâmetro. O frontend lê `?mesa=` da URL e o envia como `table_identifier` na criação do pedido, onde a API o valida (coberto por `public_orders.spec.ts`).
-- Consequência: o cliente só descobre que a mesa é inválida ou inativa ao enviar o pedido, e a tela não mostra o nome da mesa. Não há vazamento entre restaurantes: o `table_identifier` é validado contra o restaurante do slug na criação.
-- Não escrevi teste para um comportamento que não existe, e a correção de backend está fora do escopo autorizado. Decisão pendente: implementar o parâmetro (com testes) ou ajustar o contrato.
+- Situação encontrada na F6-T1: o controller ignorava o parâmetro, e o cliente só descobria uma mesa inválida ao enviar o pedido. Não havia vazamento entre restaurantes.
+- Correção: `PublicMenuController` passou a tratar `?mesa=`. O formato é validado antes da consulta (10 caracteres `a-z0-9`); a consulta filtra por `restaurant_id` e `is_active`. Qualquer outro caso (ausente, malformado, repetido, inexistente, inativa, de outro restaurante ou `dine_in` desabilitado) responde 200 sem `table`, idêntico entre si, sem oráculo.
+- Cobertura ✅: 5 testes em `public_menu.spec.ts` (grupo `Cardápio público | ?mesa=`).
+- Fora desta correção: o frontend ainda não exibe o nome da mesa; ele continua enviando `table_identifier` na criação do pedido, onde a API valida.
 
 ## 10. Fora do alcance dos testes da API
 
