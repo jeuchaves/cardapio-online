@@ -37,6 +37,11 @@ export async function throttleQuote(ip: string, restaurantId: string) {
   )
 }
 
+/** Acompanhamento de pedido: 30 consultas por minuto por IP (ROADMAP seção 6). */
+export async function throttleTracking(ip: string) {
+  await consume(`tracking:ip:${ip}`, Number(env.get('LIMITER_TRACKING_PER_MINUTE', 30)))
+}
+
 export async function throttlePasswordChange(userId: string) {
   await consume(`password:${userId}`, Number(env.get('LIMITER_PASSWORD_PER_MINUTE', 5)))
 }

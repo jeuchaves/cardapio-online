@@ -12,6 +12,7 @@ export type ScannedRoutes = {
     'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'public_orders.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'public_cart.quote': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'public_tracking.show': { paramsTuple: [ParamValue]; params: {'trackingToken': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.store': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -51,6 +52,7 @@ export type ScannedRoutes = {
     'health.show': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
     'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'public_tracking.show': { paramsTuple: [ParamValue]; params: {'trackingToken': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
@@ -65,6 +67,7 @@ export type ScannedRoutes = {
     'health.show': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
     'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'public_tracking.show': { paramsTuple: [ParamValue]; params: {'trackingToken': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }

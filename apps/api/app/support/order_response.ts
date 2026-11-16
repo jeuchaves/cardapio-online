@@ -57,14 +57,17 @@ type OrderRow = {
 }
 
 /**
- * Reconstrói o corpo do pedido a partir dos snapshots gravados, sem consultar o catálogo.
- * Mostra o status atual do pedido. Toda leitura filtra pelo restaurante.
+ * Lê os snapshots de itens e adicionais do pedido, sem consultar o catálogo. Toda leitura filtra
+ * pelo restaurante dono do pedido. Os ids das linhas servem só para a ordem canônica.
  */
-export async function loadOrderBody(restaurantId: string, order: OrderRow): Promise<OrderBody> {
+export async function loadOrderLines(
+  restaurantId: string,
+  orderId: string
+): Promise<IdentifiedLine[]> {
   const items = await db
     .from('order_items')
     .where('restaurant_id', restaurantId)
-    .where('order_id', order.id)
+    .where('order_id', orderId)
     .select('id', 'product_id', 'product_name', 'quantity', 'unit_price', 'subtotal')
 
   const addons =
@@ -79,28 +82,34 @@ export async function loadOrderBody(restaurantId: string, order: OrderRow): Prom
           )
           .select('id', 'order_item_id', 'product_addon_id', 'addon_name', 'unit_price')
 
+  return items.map((item) => ({
+    row_id: item.id,
+    product_id: item.product_id,
+    name: item.product_name,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    addons: addons
+      .filter((addon) => addon.order_item_id === item.id)
+      .map((addon) => ({
+        row_id: addon.id,
+        id: addon.product_addon_id,
+        name: addon.addon_name,
+        unit_price: addon.unit_price,
+      })),
+    subtotal: item.subtotal,
+  }))
+}
+
+/**
+ * Reconstrói o corpo do pedido a partir dos snapshots gravados, sem consultar o catálogo.
+ * Mostra o status atual do pedido. Toda leitura filtra pelo restaurante.
+ */
+export async function loadOrderBody(restaurantId: string, order: OrderRow): Promise<OrderBody> {
   return {
     order_number: order.order_number,
     tracking_token: order.tracking_token,
     status: order.status,
     total: order.total,
-    items: sortOrderItems(
-      items.map((item) => ({
-        row_id: item.id,
-        product_id: item.product_id,
-        name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        addons: addons
-          .filter((addon) => addon.order_item_id === item.id)
-          .map((addon) => ({
-            row_id: addon.id,
-            id: addon.product_addon_id,
-            name: addon.addon_name,
-            unit_price: addon.unit_price,
-          })),
-        subtotal: item.subtotal,
-      }))
-    ),
+    items: sortOrderItems(await loadOrderLines(restaurantId, order.id)),
   }
 }

@@ -13,6 +13,7 @@ export const controllers = {
   PublicCart: () => import('#controllers/public_cart_controller'),
   PublicMenu: () => import('#controllers/public_menu_controller'),
   PublicOrders: () => import('#controllers/public_orders_controller'),
+  PublicTracking: () => import('#controllers/public_tracking_controller'),
   Staff: () => import('#controllers/staff_controller'),
   Tables: () => import('#controllers/tables_controller'),
   TenantRestaurant: () => import('#controllers/tenant_restaurant_controller'),
