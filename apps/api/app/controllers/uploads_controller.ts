@@ -13,6 +13,8 @@ export default class UploadsController {
 
     response.header('Content-Type', contentTypeOf(key))
     response.header('X-Content-Type-Options', 'nosniff')
+    // Defesa em profundidade: se um arquivo for aberto direto, nada nele executa nem carrega recurso
+    response.header('Content-Security-Policy', "default-src 'none'; sandbox")
     // A chave é única por arquivo (UUID): o conteúdo nunca muda sob a mesma URL
     response.header('Cache-Control', 'public, max-age=31536000, immutable')
     return response.stream(await disk.getStream(key))

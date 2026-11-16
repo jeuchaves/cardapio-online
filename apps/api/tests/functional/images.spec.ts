@@ -128,6 +128,7 @@ test.group('Imagens | produto: upload, substituição e remoção', (group) => {
       served.assertStatus(200)
       assert.equal(served.header('content-type'), `image/${item.ext === 'jpg' ? 'jpeg' : item.ext}`)
       assert.equal(served.header('x-content-type-options'), 'nosniff')
+      assert.equal(served.header('content-security-policy'), "default-src 'none'; sandbox")
       assert.isUndefined(served.header('set-cookie'))
       assert.isTrue(served.response.body.equals?.(item.buffer) ?? true)
     }

@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   // O E2E (pnpm e2e) usa outro diretório de build para não colidir com o `next dev`
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   agentRules: false,
+  // Sem X-Powered-By: a resposta não anuncia a tecnologia do servidor
+  poweredByHeader: false,
   turbopack: {
     rules: {
       "*.css": {

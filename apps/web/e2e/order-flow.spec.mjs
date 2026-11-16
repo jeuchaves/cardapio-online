@@ -177,3 +177,11 @@ test("a cotação também identifica o item indisponível", async ({ page }) => 
     await setAvailable(restaurantId, "product", "Hambúrguer E2E", true);
   }
 });
+
+test("as respostas não anunciam a tecnologia no X-Powered-By", async ({ request }) => {
+  // Página pública, página de login e rota inexistente (a resposta de erro também passa pelo Next)
+  for (const path of [`/r/${slug}`, "/entrar", "/rota-que-nao-existe"]) {
+    const response = await request.get(path);
+    expect(response.headers()["x-powered-by"], path).toBeUndefined();
+  }
+});
