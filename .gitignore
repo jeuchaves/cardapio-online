@@ -10,6 +10,7 @@ node_modules/
 
 # Build e artefatos
 .next/
+.next-e2e/
 out/
 build/
 dist/

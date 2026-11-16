@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import { formatPrice } from "@/lib/api";
+import { MAX_QUANTITY, useCart } from "@/lib/cart";
 import type { PublicProduct } from "@/lib/public-menu";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +16,44 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-// Cada produto é um botão que abre o detalhe com os adicionais. Ainda sem carrinho.
+// Cada produto é um botão que abre o detalhe: adicionais opcionais, quantidade e o botão de
+// adicionar ao carrinho. O preço exibido é o do cardápio; o total só existe na cotação da API.
 export function PublicProductCard({ product }: { product: PublicProduct }) {
+  const cart = useCart();
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
+  function changeOpen(next: boolean) {
+    setOpen(next);
+    if (next) {
+      setSelected([]);
+      setQuantity(1);
+      setError(null);
+    }
+  }
+
+  function toggle(id: string, checked: boolean) {
+    setSelected((current) => (checked ? [...current, id] : current.filter((item) => item !== id)));
+  }
+
+  function addToCart() {
+    const result = cart.add({
+      productId: product.id,
+      productName: product.name,
+      unitPrice: product.price,
+      addons: product.addons
+        .filter((addon) => selected.includes(addon.id))
+        .map((addon) => ({ id: addon.id, name: addon.name, price: addon.price })),
+      quantity,
+    });
+    if (result.ok) setOpen(false);
+    else setError(result.reason);
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger
         className="flex w-full items-start gap-3 rounded-xl p-3 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
@@ -53,26 +92,73 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
         {product.addons.length > 0 && (
           <section aria-labelledby={`addons-${product.id}`} className="grid gap-2">
             <h3 id={`addons-${product.id}`} className="text-sm font-medium">
-              Adicionais
+              Adicionais (opcionais)
             </h3>
             <ul className="grid gap-2">
               {product.addons.map((addon) => (
-                <li
-                  key={addon.id}
-                  className="flex items-start justify-between gap-3 rounded-lg border p-2 text-sm"
-                >
-                  <span className="grid min-w-0">
-                    <span>{addon.name}</span>
-                    {addon.description && (
-                      <span className="text-muted-foreground">{addon.description}</span>
-                    )}
-                  </span>
-                  <span className="shrink-0 font-medium">+ {formatPrice(addon.price)}</span>
+                <li key={addon.id}>
+                  <label
+                    htmlFor={`addon-${product.id}-${addon.id}`}
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border p-2 text-sm"
+                  >
+                    <Checkbox
+                      id={`addon-${product.id}-${addon.id}`}
+                      checked={selected.includes(addon.id)}
+                      onCheckedChange={(checked) => toggle(addon.id, checked === true)}
+                    />
+                    <span className="grid min-w-0 flex-1">
+                      <span>{addon.name}</span>
+                      {addon.description && (
+                        <span className="text-muted-foreground">{addon.description}</span>
+                      )}
+                    </span>
+                    <span className="shrink-0 font-medium">+ {formatPrice(addon.price)}</span>
+                  </label>
                 </li>
               ))}
             </ul>
           </section>
         )}
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium" id={`qty-${product.id}`}>
+            Quantidade
+          </span>
+          <div className="flex items-center gap-2" role="group" aria-labelledby={`qty-${product.id}`}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Diminuir quantidade"
+              disabled={quantity <= 1}
+              onClick={() => setQuantity((current) => current - 1)}
+            >
+              <Minus />
+            </Button>
+            <output className="min-w-6 text-center font-medium" aria-live="polite">
+              {quantity}
+            </output>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Aumentar quantidade"
+              disabled={quantity >= MAX_QUANTITY}
+              onClick={() => setQuantity((current) => current + 1)}
+            >
+              <Plus />
+            </Button>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="button" size="lg" className="h-10" onClick={addToCart}>
+          Adicionar ao carrinho
+        </Button>
       </DialogContent>
     </Dialog>
   );

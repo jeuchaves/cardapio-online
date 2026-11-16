@@ -9,6 +9,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly details?: FieldError[],
+    // `details` que não é lista de erros por campo (ex.: ITEM_UNAVAILABLE devolve um objeto)
+    readonly extra?: unknown,
   ) {
     super(message);
   }
@@ -16,14 +18,23 @@ export class ApiError extends Error {
 
 export async function api<T = undefined>(
   path: string,
-  init: { method?: string; body?: unknown } = {},
+  init: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<T> {
   const hasBody = init.body !== undefined;
   // FormData (upload de imagem): o navegador define o Content-Type com o boundary
   const isForm = init.body instanceof FormData;
   const response = await fetch(`/api/v1${path}`, {
     method: init.method ?? "GET",
-    headers: hasBody && !isForm ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(hasBody && !isForm ? { "Content-Type": "application/json" } : {}),
+      ...init.headers,
+    },
+    signal: init.signal,
     body: hasBody ? (isForm ? (init.body as FormData) : JSON.stringify(init.body)) : undefined,
     cache: "no-store",
   });
@@ -36,6 +47,7 @@ export async function api<T = undefined>(
       payload?.code ?? "UNKNOWN",
       payload?.message ?? "Erro inesperado. Tente novamente.",
       Array.isArray(payload?.details) ? payload.details : undefined,
+      Array.isArray(payload?.details) ? undefined : payload?.details,
     );
   }
   return payload as T;

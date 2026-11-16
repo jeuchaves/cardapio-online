@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3333";
 
 const nextConfig: NextConfig = {
+  // O E2E (pnpm e2e) usa outro diretório de build para não colidir com o `next dev`
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   agentRules: false,
   turbopack: {
     rules: {
@@ -13,6 +15,19 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  // O token de acompanhamento está na URL: nada de cache, Referer ou indexação
+  async headers() {
+    return [
+      {
+        source: "/r/:slug/pedido/:token",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [

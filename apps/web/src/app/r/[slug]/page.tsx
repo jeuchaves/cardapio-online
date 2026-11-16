@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { CartBar } from "@/components/cart-bar";
 import { PublicProductCard } from "@/components/public-product-card";
 import { getPublicMenu } from "@/lib/public-menu";
 
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: PageProps<"/r/[slug]">): Prom
   };
 }
 
-// Cardápio público: sem login e sem carrinho (Fase 5). Tudo vem de GET /public/restaurants/:slug.
+// Cardápio público: sem login. Tudo vem de GET /public/restaurants/:slug; o carrinho fica no navegador.
 export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">) {
   const { slug } = await params;
   const menu = await getPublicMenu(slug);
@@ -35,7 +36,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
   const { restaurant, categories } = menu;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-24">
       <header className="grid gap-3 px-4 pt-6 pb-4">
         <div className="flex items-center gap-3">
           {restaurant.logo_url && (
@@ -122,6 +123,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
           </div>
         </>
       )}
+      <CartBar slug={restaurant.slug} />
     </main>
   );
 }
