@@ -1,11 +1,13 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PainelPage() {
+  usePageTitle("Meus restaurantes");
   const { restaurants } = useSession();
 
   return (

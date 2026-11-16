@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
@@ -22,6 +23,7 @@ import { api, type StaffMember } from "@/lib/api";
 type Revealed = { email: string; password: string };
 
 export default function StaffPage() {
+  usePageTitle("Equipe");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -120,7 +122,7 @@ export default function StaffPage() {
               error={fields.email}
               required
             />
-            <Button type="submit" className="sm:col-span-2">
+            <Button type="submit" size="lg" className="sm:col-span-2">
               Criar atendente
             </Button>
           </form>

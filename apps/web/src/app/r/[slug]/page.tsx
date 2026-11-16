@@ -36,7 +36,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
   const { restaurant, categories } = menu;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-24">
+    <main id="conteudo" tabIndex={-1} className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-24 outline-none">
       <header className="grid gap-3 px-4 pt-6 pb-4">
         <div className="flex items-center gap-3">
           {restaurant.logo_url && (
@@ -88,7 +88,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
               <a
                 key={category.id}
                 href={`#categoria-${category.id}`}
-                className="shrink-0 rounded-full border px-3 py-1 text-sm hover:bg-muted"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm hover:bg-muted"
               >
                 {category.name}
               </a>
@@ -101,7 +101,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
                 key={category.id}
                 id={`categoria-${category.id}`}
                 aria-labelledby={`titulo-${category.id}`}
-                className="grid scroll-mt-14 gap-3"
+                className="grid scroll-mt-16 gap-3"
               >
                 <div>
                   <h2 id={`titulo-${category.id}`} className="text-lg font-semibold">

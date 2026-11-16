@@ -1,10 +1,12 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, SuccessMessage, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { useSession } from "@/components/session-gate";
@@ -121,7 +123,7 @@ function ProductForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" size="lg">{submitLabel}</Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
@@ -214,6 +216,7 @@ function AddonPicker({
 }
 
 export default function ProductsPage() {
+  usePageTitle("Produtos");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -225,7 +228,6 @@ export default function ProductsPage() {
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<{ id: string; mode: "edit" | "addons" } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -259,12 +261,11 @@ export default function ProductsPage() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
-      setSuccess("Produto salvo.");
+      toast.add({ title: "Produto salvo.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -284,10 +285,9 @@ export default function ProductsPage() {
 
   async function remove(product: Product) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${product.id}`, { method: "DELETE" });
-      setSuccess("Produto excluído.");
+      toast.add({ title: "Produto excluído.", type: "success" });
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -305,7 +305,6 @@ export default function ProductsPage() {
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">Produtos</h1>
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
       <Card>
         <CardHeader>
@@ -408,7 +407,7 @@ export default function ProductsPage() {
                       onDone={() => setEditing(null)}
                       onSaved={() => {
                         setEditing(null);
-                        setSuccess("Adicionais do produto salvos.");
+                        toast.add({ title: "Adicionais do produto salvos.", type: "success" });
                         load();
                       }}
                     />

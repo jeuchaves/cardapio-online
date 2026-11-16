@@ -1,10 +1,12 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, SuccessMessage, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +59,7 @@ function CategoryForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" size="lg">{submitLabel}</Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
@@ -79,6 +81,7 @@ function readForm(form: FormData) {
 }
 
 export default function CategoriesPage() {
+  usePageTitle("Categorias");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -86,7 +89,6 @@ export default function CategoriesPage() {
 
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -106,12 +108,11 @@ export default function CategoriesPage() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
-      setSuccess("Categoria salva.");
+      toast.add({ title: "Categoria salva.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -131,10 +132,9 @@ export default function CategoriesPage() {
 
   async function remove(category: Category) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${category.id}`, { method: "DELETE" });
-      setSuccess("Categoria excluída.");
+      toast.add({ title: "Categoria excluída.", type: "success" });
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -145,7 +145,6 @@ export default function CategoriesPage() {
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">Categorias</h1>
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
       <Card>
         <CardHeader>

@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, SuccessMessage, errorMessage } from "@/components/form-error";
+import { FormError, errorMessage } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
@@ -26,14 +27,12 @@ export function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
 
   async function upload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     setError(null);
-    setSuccess(null);
     if (file.size > MAX_BYTES) {
       setError("A imagem deve ter no máximo 5 MB.");
       return;
@@ -43,7 +42,7 @@ export function ImageUpload({
     setBusy(true);
     try {
       await api(uploadPath, { method: "PUT", body });
-      setSuccess("Imagem atualizada.");
+      toast.add({ title: "Imagem atualizada.", type: "success" });
       onChanged();
     } catch (err) {
       setError(errorMessage(err));
@@ -55,11 +54,10 @@ export function ImageUpload({
   async function remove() {
     if (!removePath) return;
     setError(null);
-    setSuccess(null);
     setBusy(true);
     try {
       await api(removePath, { method: "DELETE" });
-      setSuccess("Imagem removida.");
+      toast.add({ title: "Imagem removida.", type: "success" });
       onChanged();
     } catch (err) {
       setError(errorMessage(err));
@@ -110,7 +108,6 @@ export function ImageUpload({
       </div>
       <p className="text-xs text-muted-foreground">JPEG, PNG ou WebP, até 5 MB.</p>
       <FormError message={error} />
-      <SuccessMessage message={success} />
     </div>
   );
 }

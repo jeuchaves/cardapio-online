@@ -1,10 +1,12 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, SuccessMessage, errorMessage } from "@/components/form-error";
+import { FormError, errorMessage } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { ListSkeleton } from "@/components/list-states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,9 +32,9 @@ export default function OrderDetailPage() {
   const base = `/tenant/${restaurantId}/orders/${orderId}`;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  usePageTitle(order ? `Pedido #${order.order_number}` : "Pedido");
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((key) => key + 1);
@@ -69,10 +71,9 @@ export default function OrderDetailPage() {
     pending.current = true;
     setBusy(true);
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/status`, { method: "PATCH", body: { status } });
-      setSuccess(`Status alterado para "${STATUS_LABELS[status]}".`);
+      toast.add({ title: `Status alterado para "${STATUS_LABELS[status]}".`, type: "success" });
     } catch (err) {
       if (err instanceof ApiError && err.code === "INVALID_TRANSITION") {
         setError("O status deste pedido mudou. Os dados foram atualizados; confira e tente de novo.");
@@ -111,7 +112,6 @@ export default function OrderDetailPage() {
       </div>
 
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
       {(action || canCancel(order.status)) && (
         <div className="flex flex-wrap items-center gap-3">

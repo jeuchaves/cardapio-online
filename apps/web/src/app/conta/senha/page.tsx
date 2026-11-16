@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field } from "@/components/field";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError, api, type Me } from "@/lib/api";
 
 export default function ChangePasswordPage() {
+  usePageTitle("Trocar senha");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -50,10 +52,10 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main id="conteudo" tabIndex={-1} className="flex flex-1 items-center justify-center p-4 outline-none">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Trocar senha</CardTitle>
+          <CardTitle as="h1">Trocar senha</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="grid gap-4">
@@ -84,7 +86,7 @@ export default function ChangePasswordPage() {
               required
             />
             <FormError message={error} />
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" size="lg" disabled={busy}>
               {busy ? "Salvando…" : "Salvar nova senha"}
             </Button>
           </form>

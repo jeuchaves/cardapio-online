@@ -1,10 +1,12 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Field } from "@/components/field";
-import { FormError, SuccessMessage, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { QrCodeCard } from "@/components/qr-code-card";
 import { useSession } from "@/components/session-gate";
@@ -18,6 +20,7 @@ import { restaurantMenuUrl, tableMenuUrl } from "@/lib/public-url";
 
 // QR Codes do restaurante e das mesas. Mesas são do dono (a API recusa o staff com 403).
 export default function TablesPage() {
+  usePageTitle("QR Codes");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const restaurant = restaurants.find((r) => r.id === restaurantId);
@@ -26,7 +29,6 @@ export default function TablesPage() {
 
   const [tables, setTables] = useState<RestaurantTable[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -47,12 +49,11 @@ export default function TablesPage() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(base, { method: "POST", body: { name: new FormData(formElement).get("name") } });
       formElement.reset();
-      setSuccess("Mesa criada.");
+      toast.add({ title: "Mesa criada.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -65,12 +66,11 @@ export default function TablesPage() {
     event.preventDefault();
     const name = new FormData(event.currentTarget).get("name");
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { name } });
       setEditingId(null);
-      setSuccess("Mesa renomeada.");
+      toast.add({ title: "Mesa renomeada.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -80,7 +80,6 @@ export default function TablesPage() {
 
   async function setActive(table: RestaurantTable, isActive: boolean) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { is_active: isActive } });
       load();
@@ -91,10 +90,9 @@ export default function TablesPage() {
 
   async function remove(table: RestaurantTable) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${table.id}`, { method: "DELETE" });
-      setSuccess("Mesa excluída.");
+      toast.add({ title: "Mesa excluída.", type: "success" });
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -105,7 +103,6 @@ export default function TablesPage() {
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">QR Codes</h1>
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
       <Card>
         <CardHeader>
@@ -128,7 +125,7 @@ export default function TablesPage() {
             <div className="min-w-48 flex-1">
               <Field name="name" label="Nome da mesa" maxLength={60} error={fields.name} required />
             </div>
-            <Button type="submit">Criar mesa</Button>
+            <Button type="submit" size="lg">Criar mesa</Button>
           </form>
         </CardContent>
       </Card>
@@ -168,7 +165,7 @@ export default function TablesPage() {
                       required
                     />
                   </div>
-                  <Button type="submit">Salvar</Button>
+                  <Button type="submit" size="lg">Salvar</Button>
                   <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
                     Cancelar
                   </Button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FormError, errorMessage } from "@/components/form-error";
@@ -22,6 +23,7 @@ type Page = { data: Row[]; meta: { page: number; per_page: number; total: number
 const PER_PAGE = 20;
 
 export default function RestaurantsPage() {
+  usePageTitle("Restaurantes");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [result, setResult] = useState<Page | null>(null);

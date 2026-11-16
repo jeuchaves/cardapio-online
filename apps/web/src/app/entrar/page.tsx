@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field } from "@/components/field";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, type Me } from "@/lib/api";
 
 export default function LoginPage() {
+  usePageTitle("Entrar");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,10 +37,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main id="conteudo" tabIndex={-1} className="flex flex-1 items-center justify-center p-4 outline-none">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Entrar</CardTitle>
+          <CardTitle as="h1">Entrar</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="grid gap-4">
@@ -51,7 +53,7 @@ export default function LoginPage() {
               required
             />
             <FormError message={error} />
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" size="lg" disabled={busy}>
               {busy ? "Entrando…" : "Entrar"}
             </Button>
           </form>

@@ -1,9 +1,11 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { useSession } from "@/components/session-gate";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ const OPTIONS = [
 type OptionKey = (typeof OPTIONS)[number]["key"];
 
 export default function SettingsPage() {
+  usePageTitle("Configurações");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -33,7 +36,6 @@ export default function SettingsPage() {
   const [profileFields, setProfileFields] = useState<Record<string, string>>({});
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [options, setOptions] = useState<Record<OptionKey, boolean> | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -56,7 +58,6 @@ export default function SettingsPage() {
     const form = new FormData(event.currentTarget);
     setProfileError(null);
     setProfileFields({});
-    setMessage(null);
     try {
       const { data } = await api<{ data: RestaurantData }>(`/tenant/${restaurantId}/restaurant`, {
         method: "PATCH",
@@ -67,7 +68,7 @@ export default function SettingsPage() {
         },
       });
       setRestaurant(data);
-      setMessage("Dados salvos.");
+      toast.add({ title: "Dados salvos.", type: "success" });
     } catch (err) {
       setProfileFields(fieldErrors(err));
       setProfileError(errorMessage(err));
@@ -76,13 +77,12 @@ export default function SettingsPage() {
 
   async function saveSettings() {
     setSettingsError(null);
-    setMessage(null);
     try {
       await api(`/tenant/${restaurantId}/restaurant/settings`, {
         method: "PATCH",
         body: options,
       });
-      setMessage("Configurações salvas.");
+      toast.add({ title: "Configurações salvas.", type: "success" });
     } catch (err) {
       setSettingsError(errorMessage(err));
     }
@@ -99,7 +99,6 @@ export default function SettingsPage() {
           Somente o dono do restaurante pode alterar estas informações.
         </p>
       )}
-      {message ? <p role="status">{message}</p> : null}
 
       {isOwner ? (
         <Card>
@@ -152,7 +151,7 @@ export default function SettingsPage() {
               Endereço público: <code>/r/{restaurant.slug}</code> (alterado só pela plataforma).
             </p>
             <FormError message={profileError} />
-            {isOwner ? <Button type="submit">Salvar dados</Button> : null}
+            {isOwner ? <Button type="submit" size="lg">Salvar dados</Button> : null}
           </form>
         </CardContent>
       </Card>
@@ -184,7 +183,7 @@ export default function SettingsPage() {
           ))}
           <FormError message={settingsError} />
           {isOwner ? (
-            <Button type="button" onClick={saveSettings}>
+            <Button type="button" size="lg" onClick={saveSettings}>
               Salvar configurações
             </Button>
           ) : null}

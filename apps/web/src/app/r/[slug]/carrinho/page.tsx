@@ -11,7 +11,7 @@ export default async function CartPage({ params }: PageProps<"/r/[slug]/carrinho
   if (!menu) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-10">
+    <main id="conteudo" tabIndex={-1} className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-10 outline-none">
       <header className="px-4 pt-6">
         <p className="text-sm text-muted-foreground">{menu.restaurant.name}</p>
         <h1 className="text-2xl font-semibold">Carrinho</h1>

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, formatPrice } from "@/lib/api";
 import { FINAL_STATUSES, STATUS_LABELS, getTracking, type Tracking } from "@/lib/public-order";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { PageLoading } from "@/components/list-states";
 
 const POLL_MS = 15000;
 
@@ -53,7 +54,7 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
     return () => clearInterval(timer);
   }, [final, problem, load]);
 
-  if (loading) return <p className="p-4 text-center text-muted-foreground">Carregando…</p>;
+  if (loading) return <PageLoading label="Carregando o pedido…" />;
 
   if (problem === "not_found") {
     return (
@@ -114,11 +115,11 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
       )}
       <div className="flex flex-wrap gap-2">
         {!final && (
-          <Button type="button" variant="outline" onClick={() => void load()}>
+          <Button type="button" variant="outline" size="lg" onClick={() => void load()}>
             Atualizar
           </Button>
         )}
-        <Link href={`/r/${encodeURIComponent(slug)}`} className={buttonVariants({ variant: "ghost" })}>
+        <Link href={`/r/${encodeURIComponent(slug)}`} className={buttonVariants({ variant: "ghost", size: "lg" })}>
           Voltar ao cardápio
         </Link>
       </div>

@@ -128,7 +128,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
             <Button
               type="button"
               variant="outline"
-              size="icon"
+              size="icon-lg"
               aria-label="Diminuir quantidade"
               disabled={quantity <= 1}
               onClick={() => setQuantity((current) => current - 1)}
@@ -141,7 +141,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
             <Button
               type="button"
               variant="outline"
-              size="icon"
+              size="icon-lg"
               aria-label="Aumentar quantidade"
               disabled={quantity >= MAX_QUANTITY}
               onClick={() => setQuantity((current) => current + 1)}
@@ -156,7 +156,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
             {error}
           </p>
         )}
-        <Button type="button" size="lg" className="h-10" onClick={addToCart}>
+        <Button type="button" size="lg" onClick={addToCart}>
           Adicionar ao carrinho
         </Button>
       </DialogContent>

@@ -13,7 +13,7 @@ export function CartBar({ slug }: { slug: string }) {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 p-4">
       <Link
         href={`/r/${encodeURIComponent(slug)}/carrinho`}
-        className={`${buttonVariants({ size: "lg" })} pointer-events-auto mx-auto flex h-11 w-full max-w-2xl shadow-lg`}
+        className={`${buttonVariants({ size: "lg" })} pointer-events-auto mx-auto flex w-full max-w-2xl shadow-lg`}
       >
         <ShoppingCart />
         Ver carrinho ({count})

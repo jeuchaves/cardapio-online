@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -24,6 +25,7 @@ const POLL_MS = 15000;
 
 // Lista de pedidos do restaurante (owner e staff). Recarga manual e periódica simples.
 export default function OrdersPage() {
+  usePageTitle("Pedidos");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
