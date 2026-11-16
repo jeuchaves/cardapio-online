@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/api";
 import { MAX_QUANTITY, useCart } from "@/lib/cart";
 import type { PublicProduct } from "@/lib/public-menu";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -52,13 +53,32 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
     else setError(result.reason);
   }
 
+  // Produto sem adicionais entra no carrinho com um toque (quantidade 1); com adicionais, só pelo detalhe
+  function quickAdd() {
+    const result = cart.add({
+      productId: product.id,
+      productName: product.name,
+      unitPrice: product.price,
+      addons: [],
+      quantity: 1,
+    });
+    toast.add(
+      result.ok
+        ? { title: `${product.name} adicionado ao carrinho.`, type: "success" }
+        : { title: result.reason, type: "error" },
+    );
+  }
+
+  const nameId = `produto-${product.id}`;
+
   return (
+    <div className="relative">
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger
         className="flex w-full items-start gap-3 rounded-xl p-3 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <span className="grid min-w-0 flex-1 gap-1">
-          <span className="font-medium">{product.name}</span>
+          <span id={nameId} className="font-medium">{product.name}</span>
           {product.description && (
             <span className="line-clamp-2 text-sm text-muted-foreground">{product.description}</span>
           )}
@@ -69,6 +89,8 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
           <img
             src={product.image_url}
             alt=""
+            width={96}
+            height={96}
             loading="lazy"
             className="size-24 shrink-0 rounded-lg object-cover"
           />
@@ -81,6 +103,8 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
           <img
             src={product.image_url}
             alt={product.name}
+            width={640}
+            height={360}
             className="aspect-video w-full rounded-lg object-cover"
           />
         )}
@@ -99,7 +123,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
                 <li key={addon.id}>
                   <label
                     htmlFor={`addon-${product.id}-${addon.id}`}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border p-2 text-sm"
+                    className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
                   >
                     <Checkbox
                       id={`addon-${product.id}-${addon.id}`}
@@ -161,5 +185,19 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
         </Button>
       </DialogContent>
     </Dialog>
+    {product.addons.length === 0 ? (
+      // Irmão do cartão (botão dentro de botão não é válido). O produto é descrito por aria-describedby
+      <Button
+        type="button"
+        size="icon-lg"
+        className="absolute right-3 bottom-3 rounded-full shadow-md ring-2 ring-background"
+        aria-label="Adicionar ao carrinho"
+        aria-describedby={nameId}
+        onClick={quickAdd}
+      >
+        <Plus />
+      </Button>
+    ) : null}
+    </div>
   );
 }

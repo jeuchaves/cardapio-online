@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { MapPinIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { CartBar } from "@/components/cart-bar";
+import { CategoryNav } from "@/components/category-nav";
 import { PublicProductCard } from "@/components/public-product-card";
 import { getPublicMenu } from "@/lib/public-menu";
 
@@ -9,6 +11,7 @@ const MODES = { dine_in: "Consumo no local", pickup: "Retirada" } as const;
 const PAYMENTS = { cash: "Dinheiro", card: "Cartão", pix: "Pix" } as const;
 
 const DESCRIPTION_LIMIT = 160;
+const TABLE = /^[a-z0-9]{1,60}$/;
 
 // Só dados públicos do restaurante (nome e descrição): sem telefone nem outros dados pessoais.
 // Slug inexistente ou inativo: a página responde 404 e o Next já adiciona noindex.
@@ -29,11 +32,17 @@ export async function generateMetadata({ params }: PageProps<"/r/[slug]">): Prom
 }
 
 // Cardápio público: sem login. Tudo vem de GET /public/restaurants/:slug; o carrinho fica no navegador.
-export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">) {
+// Com ?mesa= (QR Code da mesa), a API diz se a mesa vale e devolve o nome; a mesa só dá contexto ao
+// pedido, nunca acesso.
+export default async function PublicMenuPage({ params, searchParams }: PageProps<"/r/[slug]">) {
   const { slug } = await params;
-  const menu = await getPublicMenu(slug);
+  const { mesa } = await searchParams;
+  const requested = typeof mesa === "string" && mesa !== "" ? mesa : null;
+  const tableId = requested !== null && TABLE.test(requested) ? requested : null;
+  const menu = await (tableId ? getPublicMenu(slug, tableId) : getPublicMenu(slug));
   if (!menu) notFound();
-  const { restaurant, categories } = menu;
+  const { restaurant, categories, table } = menu;
+  const invalidTable = requested !== null && !table;
 
   return (
     <main id="conteudo" tabIndex={-1} className="mx-auto flex w-full max-w-2xl flex-1 flex-col pb-24 outline-none">
@@ -44,6 +53,8 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
             <img
               src={restaurant.logo_url}
               alt=""
+              width={64}
+              height={64}
               className="size-16 shrink-0 rounded-full border object-cover"
             />
           )}
@@ -55,7 +66,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
         {restaurant.phone && (
           <a
             href={`tel:${restaurant.phone.replace(/[^\d+]/g, "")}`}
-            className="w-fit text-sm underline"
+            className="inline-flex min-h-11 w-fit items-center text-sm underline"
           >
             {restaurant.phone}
           </a>
@@ -72,6 +83,22 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
             </Badge>
           ))}
         </div>
+        {table ? (
+          <p
+            className="flex w-fit items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm font-medium"
+            data-testid="table-name"
+          >
+            <MapPinIcon className="size-4" />
+            Você está na {table.name}
+          </p>
+        ) : null}
+        {invalidTable ? (
+          <div role="status" className="rounded-lg border bg-muted p-3 text-sm">
+            Este QR Code de mesa não pode ser usado agora: a mesa não existe, foi desativada ou o
+            consumo no local está indisponível. Você ainda pode ver o cardápio
+            {restaurant.fulfillment_modes.includes("pickup") ? " e pedir para retirada" : ""}.
+          </div>
+        ) : null}
       </header>
 
       {categories.length === 0 ? (
@@ -80,20 +107,7 @@ export default async function PublicMenuPage({ params }: PageProps<"/r/[slug]">)
         </p>
       ) : (
         <>
-          <nav
-            aria-label="Categorias"
-            className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur"
-          >
-            {categories.map((category) => (
-              <a
-                key={category.id}
-                href={`#categoria-${category.id}`}
-                className="inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm hover:bg-muted"
-              >
-                {category.name}
-              </a>
-            ))}
-          </nav>
+          <CategoryNav categories={categories.map(({ id, name }) => ({ id, name }))} />
 
           <div className="grid gap-8 px-4 pt-6">
             {categories.map((category) => (

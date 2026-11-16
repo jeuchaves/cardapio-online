@@ -123,6 +123,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Com viewport-fit=cover, o conteúdo não fica sob o entalhe em celular na horizontal */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   html {
     @apply font-sans;

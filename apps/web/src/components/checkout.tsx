@@ -19,6 +19,7 @@ import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useTableCheck } from "@/lib/use-table-check";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { PageLoading } from "@/components/list-states";
@@ -106,7 +107,11 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
   const quote = quoted && quoted.signature === signature ? quoted.quote : null;
 
   const modes = restaurant.fulfillment_modes;
-  const table = cart.table;
+  // A mesa guardada do QR Code é conferida na API antes do envio: mesa inexistente, desativada ou sem
+  // consumo no local habilitado deixa de ser uma opção (a API também recusa ao criar o pedido)
+  const tableCheck = useTableCheck(slug, cart.table, cart.ready);
+  const tableInvalid = tableCheck.state === "invalid";
+  const table = tableInvalid ? null : cart.table;
   // Consumo no local só é possível com o identificador da mesa vindo do QR Code
   const dineInAvailable = modes.includes("dine_in") && table !== null;
   const pickupAvailable = modes.includes("pickup");
@@ -346,14 +351,18 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                     disabled={!enabled}
                     onSelect={() => setFulfillment(mode)}
                   >
-                    {MODES[mode]}
+                    {mode === "dine_in" && tableCheck.state === "valid"
+                      ? `${MODES[mode]} · ${tableCheck.name}`
+                      : MODES[mode]}
                   </ChoiceRow>
                 );
               })}
           </RadioGroup>
           {modes.includes("dine_in") && !dineInAvailable && (
-            <p className="text-sm text-muted-foreground">
-              Para consumir no local, abra o cardápio pelo QR Code da sua mesa.
+            <p role={tableInvalid ? "status" : undefined} className="text-sm text-muted-foreground">
+              {tableInvalid
+                ? "O QR Code da mesa não é válido ou a mesa foi desativada. Abra o cardápio de novo pelo QR Code da mesa ou escolha retirada."
+                : "Para consumir no local, abra o cardápio pelo QR Code da sua mesa."}
             </p>
           )}
           {chosenMode === null && (
