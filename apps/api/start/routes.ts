@@ -83,6 +83,9 @@ router
         router.put('products/:id/addons', [controllers.Products, 'replaceAddons'])
         router.put('products/:id/image', [controllers.Products, 'putImage'])
 
+        router.get('orders', [controllers.Orders, 'index'])
+        router.get('orders/:id', [controllers.Orders, 'show'])
+
         router.get('addons', [controllers.Addons, 'index'])
         router.post('addons', [controllers.Addons, 'store'])
         router.patch('addons/:id', [controllers.Addons, 'update'])

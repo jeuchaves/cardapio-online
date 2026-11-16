@@ -28,6 +28,8 @@ export type ScannedRoutes = {
     'products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'products.replace_addons': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'products.put_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'orders.show': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
@@ -58,6 +60,8 @@ export type ScannedRoutes = {
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'categories.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'orders.show': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tables.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
@@ -73,6 +77,8 @@ export type ScannedRoutes = {
     'tenant_restaurant.show': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'categories.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'products.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
+    'orders.show': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'staff.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tables.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
