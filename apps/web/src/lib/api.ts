@@ -99,6 +99,13 @@ export type Addon = {
   is_available: boolean;
 };
 
+export type RestaurantTable = {
+  id: string;
+  name: string;
+  identifier: string;
+  is_active: boolean;
+};
+
 export type Product = {
   id: string;
   category_id: string;

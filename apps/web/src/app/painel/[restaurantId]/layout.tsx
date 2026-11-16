@@ -21,7 +21,10 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
         <Link href={`/painel/${restaurantId}/adicionais`}>Adicionais</Link>
         <Link href={`/painel/${restaurantId}/configuracoes`}>Configurações</Link>
         {restaurant?.role === "owner" ? (
-          <Link href={`/painel/${restaurantId}/equipe`}>Equipe</Link>
+          <>
+            <Link href={`/painel/${restaurantId}/mesas`}>QR Codes</Link>
+            <Link href={`/painel/${restaurantId}/equipe`}>Equipe</Link>
+          </>
         ) : null}
       </nav>
       {children}
