@@ -28,6 +28,108 @@ export class CategorySchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class OrderItemAddonSchema extends BaseModel {
+  static $columns = ['addonName', 'createdAt', 'id', 'orderItemId', 'productAddonId', 'restaurantId', 'subtotal', 'unitPrice'] as const
+  $columns = OrderItemAddonSchema.$columns
+  @column()
+  declare addonName: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare orderItemId: string
+  @column()
+  declare productAddonId: string | null
+  @column()
+  declare restaurantId: string
+  @column()
+  declare subtotal: string
+  @column()
+  declare unitPrice: string
+}
+
+export class OrderItemSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'orderId', 'productId', 'productName', 'quantity', 'restaurantId', 'subtotal', 'unitPrice'] as const
+  $columns = OrderItemSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare orderId: string
+  @column()
+  declare productId: string | null
+  @column()
+  declare productName: string
+  @column()
+  declare quantity: number
+  @column()
+  declare restaurantId: string
+  @column()
+  declare subtotal: string
+  @column()
+  declare unitPrice: string
+}
+
+export class OrderStatusHistorySchema extends BaseModel {
+  static $columns = ['changedByUserId', 'createdAt', 'id', 'newStatus', 'orderId', 'previousStatus', 'restaurantId'] as const
+  $columns = OrderStatusHistorySchema.$columns
+  @column()
+  declare changedByUserId: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare newStatus: string
+  @column()
+  declare orderId: string
+  @column()
+  declare previousStatus: string | null
+  @column()
+  declare restaurantId: string
+}
+
+export class OrderSchema extends BaseModel {
+  static $columns = ['createdAt', 'customerName', 'customerPhone', 'fulfillmentType', 'id', 'idempotencyHash', 'idempotencyKey', 'notes', 'orderNumber', 'paymentMethod', 'restaurantId', 'status', 'tableId', 'tableName', 'total', 'trackingToken', 'updatedAt'] as const
+  $columns = OrderSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare customerName: string
+  @column()
+  declare customerPhone: string | null
+  @column()
+  declare fulfillmentType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyHash: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare notes: string | null
+  @column()
+  declare orderNumber: number
+  @column()
+  declare paymentMethod: string
+  @column()
+  declare restaurantId: string
+  @column()
+  declare status: string
+  @column()
+  declare tableId: string | null
+  @column()
+  declare tableName: string | null
+  @column()
+  declare total: string
+  @column()
+  declare trackingToken: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class ProductAddonSchema extends BaseModel {
   static $columns = ['createdAt', 'description', 'id', 'isAvailable', 'name', 'price', 'restaurantId', 'updatedAt'] as const
   $columns = ProductAddonSchema.$columns
