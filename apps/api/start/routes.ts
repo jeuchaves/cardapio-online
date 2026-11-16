@@ -85,6 +85,7 @@ router
 
         router.get('orders', [controllers.Orders, 'index'])
         router.get('orders/:id', [controllers.Orders, 'show'])
+        router.patch('orders/:id/status', [controllers.OrderStatus, 'update'])
 
         router.get('addons', [controllers.Addons, 'index'])
         router.post('addons', [controllers.Addons, 'store'])

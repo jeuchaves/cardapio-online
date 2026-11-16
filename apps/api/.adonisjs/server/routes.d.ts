@@ -30,6 +30,7 @@ export type ScannedRoutes = {
     'products.put_image': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'orders.show': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'order_status.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.index': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'addons.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
@@ -104,6 +105,7 @@ export type ScannedRoutes = {
     'platform_restaurants.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
+    'order_status.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'addons.update': { paramsTuple: [ParamValue,ParamValue]; params: {'restaurantId': ParamValue,'id': ParamValue} }
     'tenant_restaurant.update': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
     'tenant_restaurant.update_settings': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }
