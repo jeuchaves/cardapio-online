@@ -12,6 +12,25 @@ export const ORDER_FIELDS = [
 export const CUSTOMER_FIELDS = ['name', 'phone']
 export const ITEM_FIELDS = ['product_id', 'quantity', 'addon_ids']
 
+// Itens do carrinho: mesmas regras na cotação e na criação do pedido
+function cartItems() {
+  return vine
+    .array(
+      vine.object({
+        product_id: vine.string().uuid(),
+        quantity: vine.number({ strict: true }).withoutDecimals().min(1).max(20),
+        addon_ids: vine.array(vine.string().uuid()).maxLength(10).distinct().optional(),
+      })
+    )
+    .minLength(1)
+    .maxLength(30)
+    .distinct('product_id')
+}
+
+export const QUOTE_FIELDS = ['items']
+
+export const createQuoteValidator = vine.create({ items: cartItems() })
+
 export const createOrderValidator = vine.create({
   customer: vine.object({
     name: vine.string().trim().minLength(1).maxLength(120),
@@ -25,15 +44,5 @@ export const createOrderValidator = vine.create({
     .regex(/^[a-z0-9]{1,60}$/)
     .optional(),
   notes: vine.string().trim().maxLength(500).optional(),
-  items: vine
-    .array(
-      vine.object({
-        product_id: vine.string().uuid(),
-        quantity: vine.number({ strict: true }).withoutDecimals().min(1).max(20),
-        addon_ids: vine.array(vine.string().uuid()).maxLength(10).distinct().optional(),
-      })
-    )
-    .minLength(1)
-    .maxLength(30)
-    .distinct('product_id'),
+  items: cartItems(),
 })

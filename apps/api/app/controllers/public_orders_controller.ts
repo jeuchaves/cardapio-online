@@ -5,20 +5,10 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import ApiError from '#exceptions/api_error'
 import { hashOrderInput } from '#support/order_hash'
 import { addonSubtotal, loadCatalog, priceCart, type CartLine } from '#support/order_cart'
+import { findActiveRestaurantBySlug, type PublicRestaurant } from '#support/public_restaurant'
 import { throttleOrderCreation } from '#support/rate_limit'
 import { isUuid, rejectUnknownFields, validationError } from '#support/request_helpers'
 import { CUSTOMER_FIELDS, ITEM_FIELDS, ORDER_FIELDS, createOrderValidator } from '#validators/order'
-
-const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
-
-type Restaurant = {
-  id: string
-  accepts_dine_in: boolean
-  accepts_pickup: boolean
-  accepts_cash: boolean
-  accepts_card: boolean
-  accepts_pix: boolean
-}
 
 type OrderInput = Awaited<ReturnType<typeof createOrderValidator.validate>>
 
@@ -26,7 +16,7 @@ type OrderInput = Awaited<ReturnType<typeof createOrderValidator.validate>>
 // Valores monetários do cliente não existem no contrato: o backend recalcula tudo (ROADMAP 5.5).
 export default class PublicOrdersController {
   async store({ request, response, params }: HttpContext) {
-    const restaurant = await findActiveRestaurant(String(params.slug))
+    const restaurant = await findActiveRestaurantBySlug(String(params.slug))
     await throttleOrderCreation(request.ip(), restaurant.id)
 
     const idempotencyKey = request.header('idempotency-key')
@@ -56,17 +46,6 @@ export default class PublicOrdersController {
   }
 }
 
-async function findActiveRestaurant(slug: string): Promise<Restaurant> {
-  if (slug.length > 60 || !SLUG.test(slug)) throw ApiError.notFound()
-  const restaurant = await db
-    .from('restaurants')
-    .where('slug', slug)
-    .where('is_active', true)
-    .first()
-  if (!restaurant) throw ApiError.notFound()
-  return restaurant
-}
-
 // O Vine descarta campos extras; o contrato rejeita (inclusive qualquer campo monetário)
 function rejectUnknownNestedFields(body: unknown) {
   rejectUnknownFields(body, ORDER_FIELDS)
@@ -79,7 +58,7 @@ function rejectUnknownNestedFields(body: unknown) {
   }
 }
 
-function checkModalityAndPayment(restaurant: Restaurant, input: OrderInput) {
+function checkModalityAndPayment(restaurant: PublicRestaurant, input: OrderInput) {
   const modeEnabled =
     input.fulfillment_type === 'dine_in' ? restaurant.accepts_dine_in : restaurant.accepts_pickup
   if (!modeEnabled) {
@@ -138,7 +117,7 @@ async function createOrder(
     if (!table) throw validationError('table_identifier', 'Mesa inválida.')
   }
 
-  const catalog = await loadCatalog(trx, restaurantId, lines)
+  const catalog = await loadCatalog(trx, restaurantId, lines, true)
   const priced = priceCart(lines, catalog)
 
   const orderId = randomUUID()

@@ -1,24 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 import type { HttpContext } from '@adonisjs/core/http'
-import ApiError from '#exceptions/api_error'
 import { imageUrl } from '#support/images'
-
-const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
+import { findActiveRestaurantBySlug } from '#support/public_restaurant'
 
 // Rota pública (ADR 0002): sem sessão. O tenant vem do slug; slug inválido, inexistente ou de
 // restaurante inativo respondem o mesmo 404. Só dados públicos: nada de ids de restaurante,
 // is_active, sort_order, timestamps ou itens indisponíveis.
 export default class PublicMenuController {
   async show({ params }: HttpContext) {
-    const slug = String(params.slug)
-    if (slug.length > 60 || !SLUG.test(slug)) throw ApiError.notFound()
-
-    const restaurant = await db
-      .from('restaurants')
-      .where('slug', slug)
-      .where('is_active', true)
-      .first()
-    if (!restaurant) throw ApiError.notFound()
+    const restaurant = await findActiveRestaurantBySlug(String(params.slug))
 
     const categories = await db
       .from('categories')

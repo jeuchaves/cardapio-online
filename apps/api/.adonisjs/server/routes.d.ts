@@ -11,6 +11,7 @@ export type ScannedRoutes = {
     'auth.me': { paramsTuple?: []; params?: {} }
     'public_menu.show': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'public_orders.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'public_cart.quote': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'platform_restaurants.index': { paramsTuple?: []; params?: {} }
     'platform_restaurants.store': { paramsTuple?: []; params?: {} }
     'platform_restaurants.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -78,6 +79,7 @@ export type ScannedRoutes = {
     'auth.login': { paramsTuple?: []; params?: {} }
     'auth.logout': { paramsTuple?: []; params?: {} }
     'public_orders.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'public_cart.quote': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'platform_restaurants.store': { paramsTuple?: []; params?: {} }
     'platform_restaurants.reset_owner_password': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.store': { paramsTuple: [ParamValue]; params: {'restaurantId': ParamValue} }

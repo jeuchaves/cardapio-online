@@ -39,6 +39,7 @@ router
       .group(() => {
         router.get('restaurants/:slug', [controllers.PublicMenu, 'show'])
         router.post('restaurants/:slug/orders', [controllers.PublicOrders, 'store'])
+        router.post('restaurants/:slug/cart/quote', [controllers.PublicCart, 'quote'])
       })
       .prefix('public')
 

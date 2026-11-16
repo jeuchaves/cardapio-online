@@ -24,39 +24,41 @@ export function addonSubtotal(unitPrice: string, quantity: number) {
 }
 
 /**
- * Lê produtos e adicionais do restaurante que podem ser pedidos agora, travando as linhas
- * (FOR SHARE) até o fim da transação. Deve rodar dentro de uma transação.
+ * Lê produtos e adicionais do restaurante que podem ser pedidos agora. Com `lock`, trava as
+ * linhas (FOR SHARE) até o fim da transação, que então é obrigatória (criação do pedido). Sem
+ * `lock`, é uma leitura simples, sem trava e sem reserva (cotação).
  * Produto ou adicional indisponível, de outro restaurante ou sem vínculo simplesmente não vem.
  */
 export async function loadCatalog(
   client: QueryClientContract,
   restaurantId: string,
-  lines: CartLine[]
+  lines: CartLine[],
+  lock: boolean
 ): Promise<Catalog> {
   const productIds = lines.map((line) => line.product_id)
   const addonIds = [...new Set(lines.flatMap((line) => line.addon_ids))]
 
-  const products = await client
+  const productsQuery = client
     .from('products')
     .where('restaurant_id', restaurantId)
     .whereIn('id', productIds)
     .where('is_available', true)
-    .forShare()
     .select('id', 'name', 'price')
+  const products = await (lock ? productsQuery.forShare() : productsQuery)
 
-  const addons =
-    addonIds.length === 0
-      ? []
-      : await client
-          .from('product_product_addons as link')
-          .join('product_addons as addon', 'addon.id', 'link.product_addon_id')
-          .where('link.restaurant_id', restaurantId)
-          .where('addon.restaurant_id', restaurantId)
-          .whereIn('link.product_id', productIds)
-          .whereIn('addon.id', addonIds)
-          .where('addon.is_available', true)
-          .forShare()
-          .select('link.product_id', 'addon.id', 'addon.name', 'addon.price')
+  let addons: CatalogAddon[] = []
+  if (addonIds.length > 0) {
+    const addonsQuery = client
+      .from('product_product_addons as link')
+      .join('product_addons as addon', 'addon.id', 'link.product_addon_id')
+      .where('link.restaurant_id', restaurantId)
+      .where('addon.restaurant_id', restaurantId)
+      .whereIn('link.product_id', productIds)
+      .whereIn('addon.id', addonIds)
+      .where('addon.is_available', true)
+      .select('link.product_id', 'addon.id', 'addon.name', 'addon.price')
+    addons = await (lock ? addonsQuery.forShare() : addonsQuery)
+  }
 
   return { products, addons }
 }

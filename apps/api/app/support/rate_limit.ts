@@ -29,6 +29,14 @@ export async function throttleOrderCreation(ip: string, restaurantId: string) {
   )
 }
 
+/** Cotação do carrinho: 30 por minuto por IP e restaurante (ROADMAP seção 6). */
+export async function throttleQuote(ip: string, restaurantId: string) {
+  await consume(
+    `quote:ip-restaurant:${ip}:${restaurantId}`,
+    Number(env.get('LIMITER_QUOTE_PER_MINUTE', 30))
+  )
+}
+
 export async function throttlePasswordChange(userId: string) {
   await consume(`password:${userId}`, Number(env.get('LIMITER_PASSWORD_PER_MINUTE', 5)))
 }
