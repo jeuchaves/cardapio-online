@@ -9,6 +9,7 @@ import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
+import { NewItemCard } from "@/components/new-item-card";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,7 @@ function ProductForm({
         max={9999}
         step={1}
         defaultValue={product?.sort_order ?? 0}
+        hint="Número menor aparece primeiro; com o mesmo número, vale a ordem alfabética."
         error={fields.sort_order}
       />
       <div className="sm:col-span-2">
@@ -309,28 +311,23 @@ export default function ProductsPage() {
       </div>
       <FormError message={error} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo produto</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {categories && categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Cadastre ao menos uma categoria antes de criar produtos.
-            </p>
-          ) : (
-            <ProductForm
-              categories={categories ?? []}
-              fields={editing ? {} : fields}
-              submitLabel="Criar produto"
-              onSubmit={(event) => {
-                const formElement = event.currentTarget;
-                void save(event, { path: base, method: "POST" }, () => formElement.reset());
-              }}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <NewItemCard title="Novo produto" forceOpen={(products?.meta.total === 0 && !filter) || categories?.length === 0}>
+        {categories && categories.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Cadastre ao menos uma categoria antes de criar produtos.
+          </p>
+        ) : (
+          <ProductForm
+            categories={categories ?? []}
+            fields={editing ? {} : fields}
+            submitLabel="Criar produto"
+            onSubmit={(event) => {
+              const formElement = event.currentTarget;
+              void save(event, { path: base, method: "POST" }, () => formElement.reset());
+            }}
+          />
+        )}
+      </NewItemCard>
 
       <div className="grid gap-1.5 sm:max-w-xs">
         <Label htmlFor="filter">Filtrar por categoria</Label>

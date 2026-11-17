@@ -5,19 +5,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { useSession } from "@/components/session-gate";
 import { TemporaryPassword } from "@/components/temporary-password";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { api, type StaffMember } from "@/lib/api";
 
 type Revealed = { email: string; password: string };
@@ -129,44 +122,45 @@ export default function StaffPage() {
         </CardContent>
       </Card>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Perfil</TableHead>
-            <TableHead>Situação</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(members ?? []).map((member) => (
-            <TableRow key={member.id}>
-              <TableCell>
-                {member.name}
-                <div className="text-xs text-muted-foreground">{member.email}</div>
-              </TableCell>
-              <TableCell>{member.role === "owner" ? "Dono" : "Equipe"}</TableCell>
-              <TableCell>
-                <Badge variant={member.is_active ? "secondary" : "outline"}>
-                  {member.is_active ? "Ativo" : "Inativo"}
-                </Badge>
-              </TableCell>
-              <TableCell className="space-x-2 text-right">
-                {member.role === "staff" ? (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => toggle(member)}>
-                      {member.is_active ? "Desativar" : "Reativar"}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => resetPassword(member)}>
-                      Nova senha
-                    </Button>
-                  </>
-                ) : null}
-              </TableCell>
-            </TableRow>
+      {/* Lista empilhada: perfil, situação e ações ficam visíveis em qualquer largura, sem rolagem horizontal. */}
+      {members === null ? (
+        error ? null : <ListSkeleton />
+      ) : members.length === 0 ? (
+        <EmptyList>Nenhum integrante cadastrado.</EmptyList>
+      ) : (
+        <ul className="grid gap-3">
+          {members.map((member) => (
+            <li key={member.id}>
+              <Card>
+                <CardContent className="grid gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-xs break-all text-muted-foreground">{member.email}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      <Badge variant="outline">{member.role === "owner" ? "Dono" : "Equipe"}</Badge>
+                      <Badge variant={member.is_active ? "secondary" : "outline"}>
+                        {member.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {member.role === "staff" ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => toggle(member)}>
+                        {member.is_active ? "Desativar" : "Reativar"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => resetPassword(member)}>
+                        Nova senha
+                      </Button>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </li>
           ))}
-        </TableBody>
-      </Table>
+        </ul>
+      )}
     </div>
   );
 }

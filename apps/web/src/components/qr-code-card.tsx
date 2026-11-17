@@ -24,7 +24,7 @@ export function QrCodeCard({ url, filename }: { url: string; filename: string })
     <div className="grid justify-items-start gap-2">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={`QR Code para ${url}`} className="size-40 rounded-md border" />
+        <img src={image} alt={`QR Code para ${url}`} className="size-40 rounded-md border print:size-56" />
       ) : (
         <div className="size-40 rounded-md border bg-muted" aria-busy={!failed} />
       )}
@@ -36,7 +36,7 @@ export function QrCodeCard({ url, filename }: { url: string; filename: string })
         <a
           href={image}
           download={`${filename}.png`}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({ variant: "outline", size: "sm" }) + " print:hidden"}
         >
           Baixar PNG
         </a>

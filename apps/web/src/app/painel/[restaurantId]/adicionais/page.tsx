@@ -8,6 +8,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
+import { NewItemCard } from "@/components/new-item-card";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,21 +145,16 @@ export default function AddonsPage() {
       <h1 className="text-xl font-semibold">Adicionais</h1>
       <FormError message={error} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo adicional</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AddonForm
-            fields={editingId ? {} : fields}
-            submitLabel="Criar adicional"
-            onSubmit={(event) => {
-              const formElement = event.currentTarget;
-              void save(event, { path: base, method: "POST" }, () => formElement.reset());
-            }}
-          />
-        </CardContent>
-      </Card>
+      <NewItemCard title="Novo adicional" forceOpen={addons?.length === 0}>
+        <AddonForm
+          fields={editingId ? {} : fields}
+          submitLabel="Criar adicional"
+          onSubmit={(event) => {
+            const formElement = event.currentTarget;
+            void save(event, { path: base, method: "POST" }, () => formElement.reset());
+          }}
+        />
+      </NewItemCard>
 
       {addons === null ? (
         error ? null : <ListSkeleton />

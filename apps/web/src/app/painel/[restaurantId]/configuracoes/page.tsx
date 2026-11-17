@@ -1,6 +1,7 @@
 "use client";
 
 import { usePageTitle } from "@/lib/use-page-title";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api, type RestaurantData } from "@/lib/api";
+import { restaurantMenuUrl } from "@/lib/public-url";
 
 const OPTIONS = [
   { key: "accepts_dine_in", label: "Consumo no local", group: "modes" },
@@ -148,9 +150,30 @@ export default function SettingsPage() {
               error={profileFields.phone}
               disabled={!isOwner}
             />
-            <p className="text-sm text-muted-foreground">
-              Endereço público: <code>/r/{restaurant.slug}</code> (alterado só pela plataforma).
-            </p>
+            <div className="grid gap-1 text-sm">
+              <p className="text-muted-foreground">Link público do cardápio (alterado só pela plataforma):</p>
+              <a
+                href={restaurantMenuUrl(restaurant.slug)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-6 items-center break-all font-medium underline underline-offset-4"
+              >
+                {restaurantMenuUrl(restaurant.slug)}
+              </a>
+              <p className="text-muted-foreground">
+                {isOwner ? (
+                  <>
+                    O QR Code do restaurante está na página{" "}
+                    <Link href={`/painel/${restaurantId}/mesas`} className="underline underline-offset-4">
+                      QR Codes
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  "O QR Code do restaurante fica com o dono, na página QR Codes."
+                )}
+              </p>
+            </div>
             <FormError message={profileError} />
             {isOwner ? <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar dados</Button> : null}
           </form>

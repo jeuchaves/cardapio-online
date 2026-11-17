@@ -14,7 +14,7 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="grid gap-3">
-      <div className="flex min-w-0 items-center gap-2 text-sm">
+      <div className="flex min-w-0 items-center gap-2 text-sm print:hidden">
         <Link
           href="/painel"
           className="inline-flex min-h-11 shrink-0 items-center text-muted-foreground hover:text-foreground"
@@ -26,7 +26,7 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
         </span>
         <span className="truncate font-medium">{restaurant?.name ?? "Restaurante"}</span>
       </div>
-      <nav aria-label="Áreas do restaurante" className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 pb-2">
+      <nav aria-label="Áreas do restaurante" className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 pb-2 print:hidden">
         <NavLink href={`${base}/pedidos`}>Pedidos</NavLink>
         <NavLink href={`${base}/categorias`}>Categorias</NavLink>
         <NavLink href={`${base}/produtos`}>Produtos</NavLink>

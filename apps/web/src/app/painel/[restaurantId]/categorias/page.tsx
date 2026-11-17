@@ -8,6 +8,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
+import { NewItemCard } from "@/components/new-item-card";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ function CategoryForm({
         max={9999}
         step={1}
         defaultValue={category?.sort_order ?? 0}
+        hint="Número menor aparece primeiro; com o mesmo número, vale a ordem alfabética."
         error={fields.sort_order}
       />
       <div className="sm:col-span-2">
@@ -146,21 +148,16 @@ export default function CategoriesPage() {
       <h1 className="text-xl font-semibold">Categorias</h1>
       <FormError message={error} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryForm
-            fields={editingId ? {} : fields}
-            submitLabel="Criar categoria"
-            onSubmit={(event) => {
-              const formElement = event.currentTarget;
-              void save(event, { path: base, method: "POST" }, () => formElement.reset());
-            }}
-          />
-        </CardContent>
-      </Card>
+      <NewItemCard title="Nova categoria" forceOpen={categories?.length === 0}>
+        <CategoryForm
+          fields={editingId ? {} : fields}
+          submitLabel="Criar categoria"
+          onSubmit={(event) => {
+            const formElement = event.currentTarget;
+            void save(event, { path: base, method: "POST" }, () => formElement.reset());
+          }}
+        />
+      </NewItemCard>
 
       {categories === null ? (
         error ? null : <ListSkeleton />

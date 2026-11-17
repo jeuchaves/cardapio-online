@@ -5,12 +5,14 @@ type FieldProps = Omit<React.ComponentProps<typeof Input>, "id"> & {
   name: string;
   label: string;
   error?: string;
+  hint?: string;
 };
 
-// O erro fica ligado ao campo (`aria-describedby`): o leitor de tela o anuncia junto do rótulo.
-export function Field({ name, label, error, "aria-describedby": describedBy, ...props }: FieldProps) {
+// O erro e a dica ficam ligados ao campo (`aria-describedby`): o leitor de tela os anuncia junto do rótulo.
+export function Field({ name, label, error, hint, "aria-describedby": describedBy, ...props }: FieldProps) {
   const errorId = error ? `${name}-error` : undefined;
-  const described = [describedBy, errorId].filter(Boolean).join(" ") || undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  const described = [describedBy, hintId, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={name}>{label}</Label>
@@ -21,6 +23,11 @@ export function Field({ name, label, error, "aria-describedby": describedBy, ...
         aria-describedby={described}
         {...props}
       />
+      {hint ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p id={errorId} className="text-sm text-destructive">
           {error}
