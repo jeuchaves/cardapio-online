@@ -36,6 +36,7 @@
 - **Situação atual:** o ADR 0002 (adendo 5) proíbe o polling em segundo plano, porque toda requisição autenticada renova a inatividade da sessão. O aviso funciona só com a aba visível e se atualiza ao voltar a ela.
 - **Proposta (a avaliar):** um canal de notificação que não renove a sessão, por exemplo eventos enviados pelo servidor ou notificações do navegador, ou uma consulta leve que não conte como atividade.
 - **Cuidados:** revisar o ADR 0002 com novo ADR; respeitar o escopo (notificações externas estão fora do MVP); não registrar dados pessoais em notificações.
+- **Planejamento:** a avaliação (WebSocket, SSE, notificações do navegador ou manter o estado atual) está prevista na F7A-T11 ([F7A-melhorias-ux-pre-producao.md](F7A-melhorias-ux-pre-producao.md)); sem implementação aprovada.
 
 ## EV-04: reordenação atômica
 
@@ -43,6 +44,7 @@
 - **Situação atual:** a ordem é o campo numérico `sort_order`, sem unicidade. Trocar duas posições exigiria dois `PATCH` não atômicos, com risco de ordem inconsistente se um falhar.
 - **Proposta:** endpoint que receba a lista ordenada e grave tudo em uma transação, com validação de que todos os ids pertencem ao restaurante.
 - **Cuidados:** limite de itens por requisição; teste de isolamento e de atomicidade.
+- **Planejamento:** base da F7A-T12 (arrastar e soltar; [F7A-melhorias-ux-pre-producao.md](F7A-melhorias-ux-pre-producao.md)); continua sem aprovação do contrato.
 
 ## EV-05: `staff` marcar produto como esgotado
 
