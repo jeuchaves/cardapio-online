@@ -15,13 +15,13 @@ Sistema multi-tenant de cardápio digital e pedidos simples. Este arquivo define
 
 - Restaurante cadastra categorias, produtos (preço, foto, disponibilidade) e adicionais simples.
 - Cardápio público por slug (`/r/:slug`), mobile-first, com QR Code.
-- Pedido simples: o cliente monta o carrinho e envia; o restaurante vê e atualiza o status. Pagamento presencial (entrega, balcão ou mesa).
+- Pedido simples: o cliente monta o carrinho e envia; o restaurante vê e atualiza o status. Pagamento presencial (balcão ou mesa). A entrega está no escopo técnico, mas **ainda não está implementada nem disponível comercialmente** (ROADMAP PEND-47).
 - Painel do restaurante com login.
-- Painel de plataforma: **apenas cadastrar e administrar restaurantes**. Sem planos, assinaturas ou cobrança.
+- Painel de plataforma: **apenas cadastrar e administrar restaurantes**. Sem planos, assinaturas ou cobrança no MVP: a oferta comercial é única (Básico) e nada que não esteja implementado e homologado é anunciado (ROADMAP PEND-50). A estrutura técnica de plano e capacidades é evolução arquitetural documentada ([ADR 0012](docs/decisions/0012-plano-e-capacidades-por-restaurante.md)), **não implementada** e sem bloqueios por plano.
 
 ### Fora do escopo (só com necessidade comprovada, pedido do usuário e ADR curto)
 
-Pagamento online e webhooks, planos/assinaturas/cobrança, domínios personalizados, filas/worker, Redis, Outbox, RLS, MFA, relatórios avançados, notificações externas, microsserviços, GraphQL, Kubernetes, BFF com regras próprias.
+Pagamento online e webhooks, planos/assinaturas/cobrança (a estrutura técnica de plano e capacidades é evolução arquitetural, ADR 0012, e não deve ser implementada sem autorização), domínios personalizados, filas/worker, Redis, Outbox, RLS, MFA, relatórios avançados, notificações externas, microsserviços, GraphQL, Kubernetes, BFF com regras próprias.
 
 ## 3. Stack
 
