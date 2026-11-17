@@ -1,5 +1,7 @@
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
+import { normalizePhone } from "@/lib/phone";
 import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -66,7 +68,7 @@ export default function SettingsPage() {
         body: {
           name: form.get("name"),
           description: form.get("description") || null,
-          phone: form.get("phone") || null,
+          phone: normalizePhone(String(form.get("phone") ?? "")) || null,
         },
       });
       setRestaurant(data);
@@ -142,11 +144,10 @@ export default function SettingsPage() {
               error={profileFields.description}
               disabled={!isOwner}
             />
-            <Field
+            <PhoneField
               name="phone"
               label="Telefone"
               defaultValue={restaurant.phone ?? ""}
-              maxLength={20}
               error={profileFields.phone}
               disabled={!isOwner}
             />

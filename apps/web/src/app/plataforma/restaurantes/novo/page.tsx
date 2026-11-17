@@ -1,5 +1,7 @@
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
+import { normalizePhone } from "@/lib/phone";
 import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useState } from "react";
@@ -37,7 +39,7 @@ export default function NewRestaurantPage() {
           name: form.get("name"),
           slug: form.get("slug"),
           description: form.get("description") || undefined,
-          phone: form.get("phone") || undefined,
+          phone: normalizePhone(String(form.get("phone") ?? "")) || undefined,
           owner: { name: form.get("owner_name"), email: form.get("owner_email") },
           confirm_link_existing_user: form.get("confirm_link") === "on" || undefined,
         },
@@ -96,7 +98,7 @@ export default function NewRestaurantPage() {
             required
           />
           <Field name="description" label="Descrição" maxLength={1000} error={fields.description} />
-          <Field name="phone" label="Telefone" maxLength={20} error={fields.phone} />
+          <PhoneField name="phone" label="Telefone" error={fields.phone} />
           <h2 className="mt-2 font-medium">Dono do restaurante</h2>
           <Field
             name="owner_name"

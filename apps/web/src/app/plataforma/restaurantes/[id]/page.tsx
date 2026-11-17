@@ -1,5 +1,7 @@
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
+import { normalizePhone } from "@/lib/phone";
 import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -50,7 +52,7 @@ export default function RestaurantDetailPage() {
           name: form.get("name"),
           slug: form.get("slug"),
           description: form.get("description") || null,
-          phone: form.get("phone") || null,
+          phone: normalizePhone(String(form.get("phone") ?? "")) || null,
           confirm_slug_change: form.get("confirm_slug_change") === "on" || undefined,
         },
       });
@@ -141,7 +143,7 @@ export default function RestaurantDetailPage() {
               </div>
             ) : null}
             <Field name="description" label="Descrição" defaultValue={restaurant.description ?? ""} maxLength={1000} error={fields.description} />
-            <Field name="phone" label="Telefone" defaultValue={restaurant.phone ?? ""} maxLength={20} error={fields.phone} />
+            <PhoneField name="phone" label="Telefone" defaultValue={restaurant.phone ?? ""} error={fields.phone} />
             <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
           </form>
         </CardContent>
