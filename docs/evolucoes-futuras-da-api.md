@@ -14,6 +14,7 @@
 | EV-04 | Reordenação atômica de categorias e produtos | Contrato | F7-T5 |
 | EV-05 | `staff` marcar produto como esgotado | Regra de negócio | ROADMAP 5.1 |
 | EV-06 | Separar a operação administrativa da autenticação do `owner` | Segurança e regra de negócio | F6-T3 (S-06) |
+| EV-07 | Mensagens de validação da API em português | Contrato (texto das mensagens) | F7-T7 |
 
 ## EV-01: filtro de vários status e contagem por status
 
@@ -56,3 +57,10 @@
 - **Situação atual:** a ação gera log de auditoria e exige a troca de senha no primeiro acesso, mas não impede o acesso.
 - **Direções a avaliar:** entregar a credencial ou o link de redefinição diretamente ao `owner`, por um canal que o `platform_admin` não veja; ou um acesso de suporte com escopo limitado e auditoria. Sem recuperação por e-mail na v1, qualquer solução precisa de um canal de entrega definido.
 - **Cuidados:** é mudança de segurança e de regra de negócio; ADR, testes de autenticação e de isolamento e atualização das seções 5.2 e 8.2 da ROADMAP.
+
+## EV-07: mensagens de validação da API em português
+
+- **Necessidade:** a validação do backend devolve mensagens em inglês (por exemplo, no telefone do pedido), e o frontend as exibe como chegam; o restante da interface está em português.
+- **Situação atual:** achado da F7-T7, não corrigido na Fase 7 porque exige mudar o backend (validador do Adonis).
+- **Direções a avaliar:** mensagens personalizadas nos validators ou tradução centralizada no validator do Adonis; alternativa só no frontend, mapeando o `code` do erro, sem mudar o backend.
+- **Cuidados:** manter o formato de erro `{ code, message, details? }` e os testes da API que conferem mensagens; avaliar junto o alinhamento do limite do telefone (PEND-38).
