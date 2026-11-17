@@ -63,7 +63,7 @@ export function CategoryNav({ categories }: { categories: Item[] }) {
     <nav
       ref={navRef}
       aria-label="Categorias"
-      className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur"
+      className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b bg-background px-4 py-2 [scrollbar-color:var(--input)_transparent] [scrollbar-width:thin]"
     >
       {categories.map((category) => {
         const current = category.id === active;

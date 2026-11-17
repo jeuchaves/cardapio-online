@@ -44,6 +44,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
       productId: product.id,
       productName: product.name,
       unitPrice: product.price,
+      imageUrl: product.image_url,
       addons: product.addons
         .filter((addon) => selected.includes(addon.id))
         .map((addon) => ({ id: addon.id, name: addon.name, price: addon.price })),
@@ -59,6 +60,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
       productId: product.id,
       productName: product.name,
       unitPrice: product.price,
+      imageUrl: product.image_url,
       addons: [],
       quantity: 1,
     });

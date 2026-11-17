@@ -222,8 +222,19 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                 data-unavailable={unavailable || undefined}
                 className={`grid gap-2 rounded-xl p-3 ring-1 ${unavailable ? "ring-destructive" : "ring-foreground/10"}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="grid min-w-0 gap-0.5">
+                <div className="flex items-start gap-3">
+                  {line.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={line.imageUrl} alt="" width={56} height={56} className="size-14 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="grid size-14 shrink-0 place-items-center rounded-lg bg-muted text-lg font-semibold text-muted-foreground"
+                    >
+                      {line.productName.trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="grid min-w-0 flex-1 gap-0.5">
                     <span className="font-medium">{line.productName}</span>
                     {line.addons.map((addon) => (
                       <span key={addon.id} className="text-sm text-muted-foreground">

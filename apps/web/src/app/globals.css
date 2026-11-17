@@ -84,8 +84,8 @@
   --status-new-foreground: #7a3b00;
   --status-confirmed: #e3eef8;
   --status-confirmed-foreground: #1f4e79;
-  --status-preparing: #eee8f8;
-  --status-preparing-foreground: #4b2e83;
+  --status-preparing: #dcefee;
+  --status-preparing-foreground: #14504b;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
