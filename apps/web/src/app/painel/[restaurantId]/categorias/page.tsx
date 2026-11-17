@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { NewItemCard } from "@/components/new-item-card";
@@ -31,7 +31,7 @@ function CategoryForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+    <form noValidate onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -61,9 +61,9 @@ function CategoryForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="flex-1 sm:flex-none">{submitLabel}</Button>
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" size="lg" className="flex-1 sm:flex-none" onClick={onCancel}>
             Cancelar
           </Button>
         ) : null}
@@ -90,8 +90,7 @@ export default function CategoriesPage() {
   const base = `/tenant/${restaurantId}/categories`;
 
   const [categories, setCategories] = useState<Category[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, setFields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const load = () => setReloadKey((key) => key + 1);
@@ -99,8 +98,8 @@ export default function CategoriesPage() {
   useEffect(() => {
     api<{ data: Category[] }>(`/tenant/${restaurantId}/categories`)
       .then(({ data }) => setCategories(data))
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [restaurantId, reloadKey]);
+      .catch(report);
+  }, [restaurantId, reloadKey, report]);
 
   async function save(
     event: React.FormEvent<HTMLFormElement>,
@@ -109,44 +108,43 @@ export default function CategoriesPage() {
   ) {
     event.preventDefault();
     const formElement = event.currentTarget;
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(formElement)) return;
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
       toast.add({ title: "Categoria salva.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function setActive(category: Category, isActive: boolean) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${category.id}`, { method: "PATCH", body: { is_active: isActive } });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   async function remove(category: Category) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${category.id}`, { method: "DELETE" });
       toast.add({ title: "Categoria excluída.", type: "success" });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   return (
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">Categorias</h1>
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <NewItemCard title="Nova categoria" forceOpen={categories?.length === 0}>
         <CategoryForm

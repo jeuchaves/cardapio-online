@@ -4,7 +4,7 @@ import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { useSession } from "@/components/session-gate";
 import { TemporaryPassword } from "@/components/temporary-password";
@@ -22,8 +22,7 @@ export default function StaffPage() {
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
 
   const [members, setMembers] = useState<StaffMember[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [revealed, setRevealed] = useState<Revealed | null>(null);
 
   const [reloadKey, setReloadKey] = useState(0);
@@ -33,15 +32,15 @@ export default function StaffPage() {
     if (!isOwner) return;
     api<{ data: StaffMember[] }>(`/tenant/${restaurantId}/staff`)
       .then(({ data }) => setMembers(data))
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [isOwner, restaurantId, reloadKey]);
+      .catch(report);
+  }, [isOwner, restaurantId, reloadKey, report]);
 
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(formElement)) return;
     try {
       const { data } = await api<{ data: { email: string; temporary_password: string } }>(
         `/tenant/${restaurantId}/staff`,
@@ -51,13 +50,12 @@ export default function StaffPage() {
       formElement.reset();
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function toggle(member: StaffMember) {
-    setError(null);
+    clearError();
     try {
       await api(`/tenant/${restaurantId}/staff/${member.id}`, {
         method: "PATCH",
@@ -65,14 +63,14 @@ export default function StaffPage() {
       });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   async function resetPassword(member: StaffMember) {
     if (!window.confirm(`Gerar nova senha temporária para ${member.name}? As sessões dele serão encerradas.`))
       return;
-    setError(null);
+    clearError();
     try {
       const { data } = await api<{ data: { email: string; temporary_password: string } }>(
         `/tenant/${restaurantId}/staff/${member.id}/reset-password`,
@@ -80,7 +78,7 @@ export default function StaffPage() {
       );
       setRevealed({ email: data.email, password: data.temporary_password });
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -98,14 +96,14 @@ export default function StaffPage() {
           onClose={() => setRevealed(null)}
         />
       ) : null}
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <Card>
         <CardHeader>
           <CardTitle>Novo atendente</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={create} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+          <form noValidate onSubmit={create} className="grid max-w-2xl gap-4 sm:grid-cols-2">
             <Field name="name" label="Nome" maxLength={120} error={fields.name} required />
             <Field
               name="email"

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { NewItemCard } from "@/components/new-item-card";
@@ -31,7 +31,7 @@ function AddonForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+    <form noValidate onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -59,9 +59,9 @@ function AddonForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="flex-1 sm:flex-none">{submitLabel}</Button>
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" size="lg" className="flex-1 sm:flex-none" onClick={onCancel}>
             Cancelar
           </Button>
         ) : null}
@@ -87,8 +87,7 @@ export default function AddonsPage() {
   const base = `/tenant/${restaurantId}/addons`;
 
   const [addons, setAddons] = useState<Addon[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, setFields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const load = () => setReloadKey((key) => key + 1);
@@ -96,8 +95,8 @@ export default function AddonsPage() {
   useEffect(() => {
     api<{ data: Addon[] }>(`/tenant/${restaurantId}/addons`)
       .then(({ data }) => setAddons(data))
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [restaurantId, reloadKey]);
+      .catch(report);
+  }, [restaurantId, reloadKey, report]);
 
   async function save(
     event: React.FormEvent<HTMLFormElement>,
@@ -106,44 +105,43 @@ export default function AddonsPage() {
   ) {
     event.preventDefault();
     const formElement = event.currentTarget;
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(formElement)) return;
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
       toast.add({ title: "Adicional salvo.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function setAvailable(addon: Addon, isAvailable: boolean) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${addon.id}`, { method: "PATCH", body: { is_available: isAvailable } });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   async function remove(addon: Addon) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${addon.id}`, { method: "DELETE" });
       toast.add({ title: "Adicional excluído.", type: "success" });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   return (
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">Adicionais</h1>
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <NewItemCard title="Novo adicional" forceOpen={addons?.length === 0}>
         <AddonForm

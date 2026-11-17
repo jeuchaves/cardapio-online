@@ -2,9 +2,9 @@
 
 import { usePageTitle } from "@/lib/use-page-title";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, focusFirstError } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { PasswordField } from "@/components/password-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,19 +13,15 @@ import { api, type Me } from "@/lib/api";
 export default function LoginPage() {
   usePageTitle("Entrar");
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const { error, kind, fields, reset, fail, invalid } = useFormFeedback();
   const [busy, setBusy] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (error) focusFirstError(formRef.current);
-  }, [error]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    reset();
+    if (invalid(event.currentTarget)) return;
     const form = new FormData(event.currentTarget);
     setBusy(true);
-    setError(null);
     try {
       const { data } = await api<{ data: Me }>("/auth/login", {
         method: "POST",
@@ -37,7 +33,7 @@ export default function LoginPage() {
         router.replace(`/painel/${data.restaurants[0].id}/pedidos`);
       else router.replace("/painel");
     } catch (err) {
-      setError(errorMessage(err));
+      fail(err);
       setBusy(false);
     }
   }
@@ -49,15 +45,16 @@ export default function LoginPage() {
           <CardTitle as="h1">Entrar</CardTitle>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} onSubmit={onSubmit} className="grid gap-4">
-            <Field name="email" label="E-mail" type="email" autoComplete="username" required />
+          <form noValidate onSubmit={onSubmit} className="grid gap-4">
+            <Field name="email" label="E-mail" type="email" autoComplete="username" required error={fields.email} />
             <PasswordField
               name="password"
               label="Senha"
               autoComplete="current-password"
               required
+              error={fields.password}
             />
-            <FormError message={error} />
+            <FormError message={error} kind={kind} />
             <Button type="submit" size="lg" disabled={busy}>
               {busy ? "Entrando…" : "Entrar"}
             </Button>

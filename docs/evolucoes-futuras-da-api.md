@@ -37,6 +37,7 @@
 - **Proposta (a avaliar):** um canal de notificação que não renove a sessão, por exemplo eventos enviados pelo servidor ou notificações do navegador, ou uma consulta leve que não conte como atividade.
 - **Cuidados:** revisar o ADR 0002 com novo ADR; respeitar o escopo (notificações externas estão fora do MVP); não registrar dados pessoais em notificações.
 - **Planejamento:** a avaliação (WebSocket, SSE, notificações do navegador ou manter o estado atual) está prevista na F7A-T11 ([F7A-melhorias-ux-pre-producao.md](F7A-melhorias-ux-pre-producao.md)); sem implementação aprovada.
+- **Avaliação concluída (2026-11-17):** [F7A-T11-avaliacao-tempo-real.md](F7A-T11-avaliacao-tempo-real.md) recomenda manter o estado atual; SSE seria a primeira opção se houver necessidade comprovada. Decisão D-07 do usuário pendente.
 
 ## EV-04: reordenação atômica
 

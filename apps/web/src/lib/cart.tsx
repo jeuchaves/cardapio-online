@@ -16,6 +16,8 @@ export type CartLine = {
   productId: string;
   productName: string;
   unitPrice: string;
+  /** Miniatura exibida no carrinho; ausente em carrinhos guardados antes desta versão. */
+  imageUrl: string | null;
   addons: CartAddon[];
   quantity: number;
 };
@@ -50,6 +52,9 @@ function lineKey(productId: string, addons: CartAddon[]) {
 }
 
 const isText = (value: unknown): value is string => typeof value === "string";
+// O armazenamento é editável pelo usuário: só caminho do próprio site ou https vira src de imagem
+const isImageUrl = (value: unknown): value is string =>
+  isText(value) && value.length <= 2048 && (value.startsWith("/") && !value.startsWith("//") || value.startsWith("https://"));
 
 // O armazenamento é entrada não confiável: só linhas bem formadas são aceitas (o backend valida de novo)
 function parseLines(value: unknown): CartLine[] {
@@ -78,6 +83,7 @@ function parseLines(value: unknown): CartLine[] {
       productId: line.productId,
       productName: line.productName,
       unitPrice: line.unitPrice,
+      imageUrl: isImageUrl(line.imageUrl) ? line.imageUrl : null,
       addons,
       quantity: line.quantity!,
     });

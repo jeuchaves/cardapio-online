@@ -279,3 +279,55 @@ Tarefas com pouco acoplamento entre si e executáveis em paralelo no planejament
 ## 9. Não faz parte desta fase
 
 Tudo o que o CLAUDE.md seção 2 lista como fora do escopo (pagamento online, planos, domínios, filas, Redis, notificações externas, relatórios), tema escuro, fonte nova e telas novas. Nenhuma tarefa acima implementa funcionalidade de negócio nova sem decisão e ADR.
+
+## 10. Execução e relatório (2026-11-17)
+
+- Branch `feat/fase-7a`, a partir da `main`. Nada enviado ao remoto.
+- **Decisões do usuário:** D-01 (nome "7A" mantido), D-02 (composição do cartão delegada), D-03 (identidade "Papel e tinta" preservada; sem fonte nova, gradiente ou personalização por restaurante; animação só na T10), D-05 (sem biblioteca de formulários) e D-09 (lote da seção 8 do plano; T5b, T9 e T12 fora). D-04, D-06, D-07 e D-08 seguem sem decisão, pois as tarefas estão fora do lote. As decisões de composição e de tokens estão no [ADR 0009](decisions/0009-cardapio-publico-fase-7a.md).
+
+### 10.1 Tarefas
+
+| Tarefa | Situação | Observação |
+| --- | --- | --- |
+| T1 botões | concluída | Pares Salvar e Cancelar com o mesmo tamanho (44 px) e a mesma largura nos formulários de categorias, adicionais, produtos e mesas; medido no navegador. Os botões de ação de linha (tamanho `sm` ou padrão) não mudaram. |
+| T2 navegação mobile | concluída | Menu recolhível (`aria-expanded`, Escape fecha) abaixo de 640 px; em linha a partir daí. `owner` mostra 7 itens e `staff`, 5. |
+| T3 cartão do produto | concluída | Linha de menu (ADR 0009). Nomes longos sem espaço corrigidos. |
+| T4 tokens | concluída | Só o token "Em preparo" mudou (sem violeta); contraste calculado de 19 pares, todos acima do mínimo. |
+| T5 banner | concluída | Superfície sólida, sem imagem de capa e sem gradiente. |
+| T6 miniaturas | concluída | `imageUrl` opcional no carrinho, URL do armazenamento validada, carrinho antigo tolerado, carrinhos separados por restaurante. |
+| T7 erros | concluída | Padrão em todos os formulários (seção 10.5). |
+| T8 máscaras | concluída | `PhoneField` com envio normalizado em checkout, configurações e plataforma (novo e edição); limite alinhado à API (PEND-38). |
+| T10 animações | concluída | Entrada da etapa atual e pulso discreto; `prefers-reduced-motion` desliga. |
+| T11 tempo real | concluída (documento) | [Recomendação: manter o estado atual](F7A-T11-avaliacao-tempo-real.md). |
+| T13 regressão | concluída tecnicamente | Seção 10.3. Roteiro em celular físico segue pendente (PEND-37). |
+
+### 10.2 T5b, T9 e T12 frente ao MVP (verificação pedida na D-09)
+
+- O escopo da v1 (CLAUDE.md seção 2) lista "adicionais simples", categorias, produtos com foto e cardápio por slug. **Nenhuma das três é requisito do MVP:** adicionais com quantidade (T9) contradiz a decisão "simples e opcionais" do ROADMAP 5.8; ordenação por arrastar (T12) tem a alternativa vigente do campo numérico (PEND-23); capa enviada (T5b) não consta no escopo e o banner por composição cumpre a identificação do restaurante.
+- Impacto de deixá-las fora: nenhum bloqueio de produção. Ficam como evolução; se aprovadas depois, T9 e T12 exigem migration ou endpoint novo e devem ser decididas antes do congelamento da F8-T2.
+
+### 10.3 Validação
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test` (334 de 334), `pnpm build` e `pnpm e2e` (15 de 15) passando no estado final.
+- Verificação no navegador (Playwright MCP, Chromium, base `cardapio_test` isolada, dois restaurantes fictícios, 12 categorias, 58 produtos com e sem foto (mais 2 no outro restaurante), logo largo, descrição longa e nome sem espaços), em 320, 390, 768, 1024 e 1280 px: cardápio, carrinho vazio e telas do painel do `owner` em todas as larguras, `staff` e plataforma em 320 a 1280 px, sem rolagem horizontal da página; um `<h1>` por tela; o único alvo abaixo de 24 px em telas públicas é o link "Pular para o conteúdo" (invisível até receber foco). Carrinho com linha antiga e com URL maliciosa (`javascript:`), tolerados; carrinho de outro restaurante não se mistura; fluxo pedido, acompanhamento e transição de status com movimento normal e reduzido.
+- Defeitos encontrados e corrigidos na validação: nome longo sem espaço sobre a foto (T3), cabeçalho do painel com 5 px de excesso em 305 a 320 px, e expressão regular errada no armazenamento do carrinho (pega pelo lint).
+
+### 10.4 Pendências
+
+| Item | Classe | Observação |
+| --- | --- | --- |
+| Roteiro em celular físico (PEND-37) | humana | **Não executado, sem aparelho.** Roteiro objetivo em [F7A-roteiro-celular-fisico.md](F7A-roteiro-celular-fisico.md) |
+| Mensagens de validação da API em inglês (EV-07) | melhoria futura | Sem mudança de backend |
+| Alvos de linha de 28 a 32 px no painel | já aceita | A6 (24 px) atendido; ver F7-T8 |
+| Inspeção individual de capturas por um humano | humana | Capturas feitas em 320, 390, 768 e 1280 px e inspecionadas pelo agente; a revisão do usuário (PEND-31) continua útil |
+| Cor de acento por restaurante, fonte serifada nos títulos | melhoria futura | Exigem decisão (backend ou nova fonte) |
+
+### 10.5 Rodada complementar: T7 em todos os formulários (2026-11-17)
+
+- **Análise da abstração:** os 9 formulários repetiam o mesmo bloco (estado de erro e de campos, limpar, capturar erro da API, foco), o que justifica extrair. `validateForm` foi adaptado: suporta `select`, ignora campos desabilitados (`willValidate`, caso do `staff` em Configurações), cobre faixa numérica, formato e tamanho mínimo, tira do rótulo qualquer sufixo entre parênteses e acha o rótulo do Select do Base UI pelo `name`. Foi criado `useFormFeedback` (mensagem com categoria, erros por campo, foco no primeiro erro); `report` serve às ações que não são formulário.
+- **Aplicado em:** categorias, produtos (inclusive o editor de adicionais), adicionais, mesas (criar e renomear), equipe, configurações (dados e opções), plataforma (novo e edição), login e troca de senha. O checkout usa os mesmos auxiliares, mas mantém o estado próprio por causa do mapeamento `customer.*`.
+- **Preservado:** regras de validação, contratos, permissões, estados de carregamento e mensagens de negócio da API. A regra "confirmação diferente da senha" e o mapeamento de slug em uso continuam específicos das telas.
+- **Evidências (Playwright MCP, 390 px, base `cardapio_test`):** envio vazio mostra erro junto do campo com `aria-describedby` e foco no primeiro inválido em categorias, produtos (nome, categoria, preço e faixa de ordem), adicionais, mesas, equipe, configurações (dono; `staff` com campos desabilitados não é bloqueado), plataforma (novo e edição) e troca de senha; negócio (nome duplicado, slug em uso, senha inválida) em mensagem própria; falha de rede (requisição abortada) mostra "Falha de comunicação" e mantém o que foi digitado, em categorias e no login; sucesso confirmado por toast em categorias e configurações. `staff`: 7 telas × 5 larguras sem rolagem lateral e com um `<h1>`; plataforma em 4 larguras sem rolagem lateral.
+- **Defeito pego na validação:** o rótulo do Select de categoria saía como "Este campo"; corrigido.
+- **Suítes no estado final:** `lint`, `typecheck`, `test` (334 de 334), `build` e `e2e` (15 de 15) passando.
+- **Pendências restantes:** PEND-37 (roteiro físico), decisões D-04, D-06, D-07 e D-08 (tarefas fora do lote), EV-07 e a revisão humana das capturas.

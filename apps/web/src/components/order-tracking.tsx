@@ -35,16 +35,25 @@ function OrderProgress({ status }: { status: OrderStatus }) {
         const state = index < current ? "done" : index === current ? "current" : "next";
         const Icon = state === "done" ? CircleCheckIcon : state === "current" ? CircleDotIcon : CircleIcon;
         return (
+          // A chave inclui o estado: quando a API confirma um novo status, a etapa que mudou é
+          // remontada e toca a entrada. Sem movimento com prefers-reduced-motion (motion-safe).
           <li
-            key={step}
+            key={`${step}-${state}`}
             aria-current={state === "current" ? "step" : undefined}
             className={cn(
-              "flex min-h-8 items-center gap-2 text-sm",
-              state === "current" && "font-semibold",
+              "flex min-h-10 items-center gap-2 rounded-lg px-2 text-base",
+              state === "current" &&
+                "bg-accent font-semibold text-accent-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 motion-safe:duration-300",
               state === "next" && "text-muted-foreground",
             )}
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon
+              className={cn(
+                "size-5 shrink-0",
+                // Pulso discreto só enquanto o pedido está em andamento
+                state === "current" && step !== "completed" && "motion-safe:animate-pulse",
+              )}
+            />
             <span>{STATUS_LABELS[step]}</span>
             <span className="sr-only">
               {state === "done" ? " (concluída)" : state === "current" ? " (etapa atual)" : " (próxima etapa)"}

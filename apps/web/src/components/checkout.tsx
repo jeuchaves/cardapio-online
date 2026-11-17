@@ -16,7 +16,9 @@ import {
 import type { PublicRestaurant } from "@/lib/public-menu";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { PhoneField } from "@/components/phone-field";
+import { normalizePhone } from "@/lib/phone";
+import { type ErrorKind, FormError, errorKind, errorMessage, fieldErrors, focusFirstError, validateForm } from "@/components/form-error";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useTableCheck } from "@/lib/use-table-check";
@@ -106,6 +108,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
 
   const quote = quoted && quoted.signature === signature ? quoted.quote : null;
 
+
   const modes = restaurant.fulfillment_modes;
   // A mesa guardada do QR Code é conferida na API antes do envio: mesa inexistente, desativada ou sem
   // consumo no local habilitado deixa de ser uma opção (a API também recusa ao criar o pedido)
@@ -125,9 +128,16 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorType, setErrorType] = useState<ErrorKind | undefined>();
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Mesmo payload reenviado reaproveita a chave; payload diferente gera uma nova tentativa
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
+
+  // Depois que o erro foi renderizado, o foco vai ao primeiro campo inválido (ou à mensagem)
+  useEffect(() => {
+    if (error || Object.keys(errors).length > 0) focusFirstError(formRef.current);
+  }, [error, errors]);
 
   const chosenMode: Mode | null =
     fulfillment && (fulfillment === "dine_in" ? dineInAvailable : pickupAvailable)
@@ -142,10 +152,20 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
     event.preventDefault();
     if (busy || !chosenMode || !payment || cart.lines.length === 0) return;
     setError(null);
+    setErrorType(undefined);
+    const local = validateForm(event.currentTarget);
+    if (Object.keys(local).length > 0) {
+      setErrors({
+        ...(local.name ? { "customer.name": local.name } : {}),
+        ...(local.phone ? { "customer.phone": local.phone } : {}),
+        ...(local.notes ? { notes: local.notes } : {}),
+      });
+      return;
+    }
     setErrors({});
 
     const input: OrderInput = {
-      customer: { name: name.trim(), ...(phone.trim() ? { phone: phone.trim() } : {}) },
+      customer: { name: name.trim(), ...(normalizePhone(phone) ? { phone: normalizePhone(phone) } : {}) },
       fulfillment_type: chosenMode,
       payment_method: payment,
       ...(chosenMode === "dine_in" && table ? { table_identifier: table } : {}),
@@ -178,6 +198,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
         );
       } else {
         setError(errorMessage(caught));
+        setErrorType(errorKind(caught));
         setErrors(fieldErrors(caught));
       }
     }
@@ -207,7 +228,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-6 p-4" aria-label="Carrinho e pedido">
+    <form ref={formRef} noValidate onSubmit={submit} className="grid gap-6 p-4" aria-label="Carrinho e pedido">
       <section aria-labelledby="titulo-itens" className="grid gap-3">
         <h2 id="titulo-itens" className="text-lg font-semibold">
           Seu pedido
@@ -222,9 +243,20 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                 data-unavailable={unavailable || undefined}
                 className={`grid gap-2 rounded-xl p-3 ring-1 ${unavailable ? "ring-destructive" : "ring-foreground/10"}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="grid min-w-0 gap-0.5">
-                    <span className="font-medium">{line.productName}</span>
+                <div className="flex items-start gap-3">
+                  {line.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={line.imageUrl} alt="" width={56} height={56} className="size-14 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="grid size-14 shrink-0 place-items-center rounded-lg bg-muted text-lg font-semibold text-muted-foreground"
+                    >
+                      {line.productName.trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5">
+                    <span className="font-medium [overflow-wrap:anywhere]">{line.productName}</span>
                     {line.addons.map((addon) => (
                       <span key={addon.id} className="text-sm text-muted-foreground">
                         + {addon.name}
@@ -317,16 +349,11 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
           onChange={(event) => setName(event.target.value)}
           error={errors["customer.name"]}
         />
-        <Field
+        <PhoneField
           name="phone"
           label={chosenMode === "pickup" ? "Telefone" : "Telefone (opcional)"}
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
           required={chosenMode === "pickup"}
-          maxLength={30}
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onDigitsChange={setPhone}
           error={errors["customer.phone"]}
         />
 
@@ -414,7 +441,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
         </div>
       </section>
 
-      <FormError message={error} />
+      <FormError message={error} kind={errorType} />
       <div className="grid gap-2">
         <Button type="submit" size="lg" disabled={busy || chosenMode === null || payment === null}>
           {busy ? "Enviando…" : "Enviar pedido"}
