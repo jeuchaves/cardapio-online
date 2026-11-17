@@ -109,23 +109,23 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         <>
           <CategoryNav categories={categories.map(({ id, name }) => ({ id, name }))} />
 
-          <div className="grid gap-8 px-4 pt-6">
+          <div className="grid gap-10 px-4 pt-6">
             {categories.map((category) => (
               <section
                 key={category.id}
                 id={`categoria-${category.id}`}
                 aria-labelledby={`titulo-${category.id}`}
-                className="grid scroll-mt-16 gap-3"
+                className="grid scroll-mt-20 gap-3"
               >
                 <div>
-                  <h2 id={`titulo-${category.id}`} className="text-lg font-semibold">
+                  <h2 id={`titulo-${category.id}`} className="text-xl font-semibold tracking-tight">
                     {category.name}
                   </h2>
                   {category.description && (
                     <p className="text-sm text-muted-foreground">{category.description}</p>
                   )}
                 </div>
-                <ul className="grid gap-3">
+                <ul className="divide-y overflow-hidden rounded-xl bg-card ring-1 ring-border">
                   {category.products.map((product) => (
                     <li key={product.id}>
                       <PublicProductCard product={product} />

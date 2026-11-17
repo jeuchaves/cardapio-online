@@ -170,10 +170,12 @@ export default function TablesPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
-                  <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
-                    Cancelar
-                  </Button>
+                  <div className="flex gap-2 sm:col-span-2">
+                    <Button type="submit" size="lg" className="flex-1 sm:flex-none">Salvar</Button>
+                    <Button type="button" variant="outline" size="lg" className="flex-1 sm:flex-none" onClick={() => setEditingId(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
                 </form>
               ) : null}
               <div className="flex flex-wrap items-center gap-3 print:hidden">

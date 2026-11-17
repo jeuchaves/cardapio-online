@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { ChevronRight, Minus, Plus } from "lucide-react";
 import { formatPrice } from "@/lib/api";
 import { MAX_QUANTITY, useCart } from "@/lib/cart";
 import type { PublicProduct } from "@/lib/public-menu";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -72,31 +71,63 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
 
   const nameId = `produto-${product.id}`;
 
+  const descId = `${nameId}-descricao`;
+  const hasAddons = product.addons.length > 0;
+
+  // Linha de menu: texto à esquerda, e à direita a foto com a ação logo abaixo, sempre na mesma
+  // borda. O gatilho do detalhe cobre a linha inteira (alvo de toque grande) sem conter a ação
+  // rápida, que fica acima dele: botão dentro de botão não é válido.
   return (
-    <div className="relative">
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger
-        className="flex w-full items-start gap-3 rounded-xl bg-card p-3 text-left ring-1 ring-border transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      >
-        <span className={cn("grid min-w-0 flex-1 gap-1", product.addons.length === 0 && "pr-12")}>
-          <span id={nameId} className="font-medium">{product.name}</span>
+      <div className="relative flex gap-3 px-3 py-3 transition-colors hover:bg-muted/50">
+        <DialogTrigger
+          data-product-trigger
+          aria-labelledby={nameId}
+          aria-describedby={product.description ? descId : undefined}
+          className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        />
+        <div className="grid min-w-0 flex-1 content-start gap-1">
+          <span id={nameId} className="text-base leading-snug font-medium break-words">
+            {product.name}
+          </span>
           {product.description && (
-            <span className="line-clamp-2 text-sm text-muted-foreground">{product.description}</span>
+            <span id={descId} className="line-clamp-2 text-base leading-snug break-words text-muted-foreground">
+              {product.description}
+            </span>
           )}
-          <span className="mt-1 font-semibold">{formatPrice(product.price)}</span>
-        </span>
-        {product.image_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image_url}
-            alt=""
-            width={96}
-            height={96}
-            loading="lazy"
-            className="size-24 shrink-0 rounded-lg object-cover"
-          />
-        )}
-      </DialogTrigger>
+          <span className="mt-1 font-semibold tabular-nums">{formatPrice(product.price)}</span>
+        </div>
+        <div className="flex shrink-0 flex-col items-end justify-between gap-2">
+          {product.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.image_url}
+              alt=""
+              width={80}
+              height={80}
+              loading="lazy"
+              className="size-20 rounded-lg object-cover"
+            />
+          )}
+          {hasAddons ? (
+            <span aria-hidden="true" className="pointer-events-none flex h-11 items-center gap-0.5 text-sm font-medium text-primary">
+              Opções
+              <ChevronRight className="size-4" />
+            </span>
+          ) : (
+            <Button
+              type="button"
+              size="icon-lg"
+              className="relative rounded-full"
+              aria-label="Adicionar ao carrinho"
+              aria-describedby={nameId}
+              onClick={quickAdd}
+            >
+              <Plus />
+            </Button>
+          )}
+        </div>
+      </div>
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto">
         {product.image_url && (
@@ -186,19 +217,5 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
         </Button>
       </DialogContent>
     </Dialog>
-    {product.addons.length === 0 ? (
-      // Irmão do cartão (botão dentro de botão não é válido). O produto é descrito por aria-describedby
-      <Button
-        type="button"
-        size="icon-lg"
-        className={cn("absolute bottom-3 rounded-full", product.image_url ? "right-30" : "right-3")}
-        aria-label="Adicionar ao carrinho"
-        aria-describedby={nameId}
-        onClick={quickAdd}
-      >
-        <Plus />
-      </Button>
-    ) : null}
-    </div>
   );
 }

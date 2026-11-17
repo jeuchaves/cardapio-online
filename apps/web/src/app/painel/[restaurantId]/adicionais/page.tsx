@@ -59,9 +59,9 @@ function AddonForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="flex-1 sm:flex-none">{submitLabel}</Button>
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" size="lg" className="flex-1 sm:flex-none" onClick={onCancel}>
             Cancelar
           </Button>
         ) : null}
