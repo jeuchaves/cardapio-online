@@ -5,16 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FormError, errorMessage } from "@/components/form-error";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { api } from "@/lib/api";
 
 type Row = { id: string; name: string; slug: string; is_active: boolean };
@@ -46,7 +38,7 @@ export default function RestaurantsPage() {
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Restaurantes</h1>
-        <Link href="/plataforma/restaurantes/novo" className="text-sm underline">
+        <Link href="/plataforma/restaurantes/novo" className={buttonVariants({ size: "lg" })}>
           Novo restaurante
         </Link>
       </div>
@@ -61,34 +53,25 @@ export default function RestaurantsPage() {
         }}
       />
       <FormError message={error} />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Slug</TableHead>
-            <TableHead>Situação</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(result?.data ?? []).map((row) => (
-            <TableRow key={row.id}>
-              <TableCell>
-                <Link href={`/plataforma/restaurantes/${row.id}`} className="underline">
-                  {row.name}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <code>{row.slug}</code>
-              </TableCell>
-              <TableCell>
-                <Badge variant={row.is_active ? "secondary" : "outline"}>
-                  {row.is_active ? "Ativo" : "Inativo"}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {/* Lista empilhada: nome, slug e situação ficam visíveis em qualquer largura, sem rolagem horizontal. */}
+      <ul className="grid gap-3">
+        {(result?.data ?? []).map((row) => (
+          <li key={row.id}>
+            <Link
+              href={`/plataforma/restaurantes/${row.id}`}
+              className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-card p-4 ring-1 ring-border transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <span className="grid min-w-0 gap-1">
+                <span className="truncate font-medium">{row.name}</span>
+                <code className="truncate text-xs text-muted-foreground">{row.slug}</code>
+              </span>
+              <Badge variant={row.is_active ? "secondary" : "outline"}>
+                {row.is_active ? "Ativo" : "Inativo"}
+              </Badge>
+            </Link>
+          </li>
+        ))}
+      </ul>
       {result && result.data.length === 0 ? (
         <p className="text-muted-foreground">Nenhum restaurante encontrado.</p>
       ) : null}

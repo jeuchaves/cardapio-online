@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ApiStatus } from "@/components/api-status";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
@@ -13,7 +12,6 @@ export default function Home() {
       <Link href="/entrar" className={buttonVariants({ size: "lg" })}>
         Entrar
       </Link>
-      <ApiStatus />
     </main>
   );
 }

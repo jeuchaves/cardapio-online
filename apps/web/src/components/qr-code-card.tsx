@@ -3,6 +3,7 @@
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // QR gerado no navegador, só com a URL recebida (nada de token ou dado interno).
 // O PNG de 600 px serve para imprimir.
@@ -36,7 +37,7 @@ export function QrCodeCard({ url, filename }: { url: string; filename: string })
         <a
           href={image}
           download={`${filename}.png`}
-          className={buttonVariants({ variant: "outline", size: "sm" }) + " print:hidden"}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "print:hidden")}
         >
           Baixar PNG
         </a>

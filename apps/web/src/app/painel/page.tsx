@@ -2,13 +2,25 @@
 
 import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
-import { ChevronRightIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { PageLoading } from "@/components/list-states";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function PainelPage() {
   usePageTitle("Meus restaurantes");
   const { restaurants } = useSession();
+  const router = useRouter();
+  const single = restaurants.length === 1 ? restaurants[0] : null;
+
+  useEffect(() => {
+    if (single) router.replace(`/painel/${single.id}/pedidos`);
+  }, [single, router]);
+
+  if (single) return <PageLoading label="Abrindo o painel…" />;
 
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-4">
@@ -18,19 +30,24 @@ export default function PainelPage() {
       ) : (
         <ul className="grid gap-3">
           {restaurants.map((restaurant) => (
-            <li key={restaurant.id}>
-              <Link
-                href={`/painel/${restaurant.id}/pedidos`}
-                className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-card p-4 ring-1 ring-border transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              >
-                <span className="grid min-w-0 gap-1">
-                  <span className="truncate font-medium">{restaurant.name}</span>
-                  <span>
-                    <Badge variant="secondary">{restaurant.role === "owner" ? "Dono" : "Equipe"}</Badge>
-                  </span>
-                </span>
-                <ChevronRightIcon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-              </Link>
+            <li key={restaurant.id} className="grid gap-3 rounded-xl bg-card p-4 ring-1 ring-border">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate font-medium">{restaurant.name}</span>
+                <Badge variant="secondary">{restaurant.role === "owner" ? "Dono" : "Equipe"}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/painel/${restaurant.id}/pedidos`} className={buttonVariants({ size: "lg" })}>
+                  Pedidos
+                </Link>
+                {restaurant.role === "owner" ? (
+                  <Link
+                    href={`/painel/${restaurant.id}/mesas`}
+                    className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+                  >
+                    QR Codes
+                  </Link>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>

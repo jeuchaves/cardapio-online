@@ -4,6 +4,7 @@ import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { TemporaryPassword } from "@/components/temporary-password";
@@ -150,13 +151,23 @@ export default function RestaurantDetailPage() {
         <CardHeader>
           <CardTitle>Situação</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="min-w-48 flex-1 text-sm text-muted-foreground">
             Restaurante inativo deixa de aparecer ao público; o painel continua acessível.
           </p>
-          <Button variant="outline" onClick={() => setActive(!restaurant.is_active)}>
-            {restaurant.is_active ? "Desativar" : "Ativar"}
-          </Button>
+          {restaurant.is_active ? (
+            <ConfirmDelete
+              size="lg"
+              label="Desativar"
+              title={`Desativar "${restaurant.name}"?`}
+              description="O cardápio público e o acompanhamento de pedidos deixam de aparecer ao público. O painel continua acessível e você pode ativar de novo."
+              onConfirm={() => setActive(false)}
+            />
+          ) : (
+            <Button variant="outline" size="lg" onClick={() => setActive(true)}>
+              Ativar
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -164,11 +175,11 @@ export default function RestaurantDetailPage() {
         <CardHeader>
           <CardTitle>Dono</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="min-w-48 flex-1 text-sm text-muted-foreground">
             Gera uma nova senha temporária (exibida uma única vez). Não há recuperação por e-mail.
           </p>
-          <Button variant="outline" onClick={resetOwner}>
+          <Button variant="outline" size="lg" onClick={resetOwner}>
             Nova senha do dono
           </Button>
         </CardContent>
