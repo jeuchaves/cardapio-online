@@ -1,14 +1,60 @@
 "use client";
 
 import Link from "next/link";
+import { CircleCheckIcon, CircleDotIcon, CircleIcon, CopyIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, formatPrice } from "@/lib/api";
-import { FINAL_STATUSES, STATUS_LABELS, getTracking, type Tracking } from "@/lib/public-order";
+import { FINAL_STATUSES, STATUS_LABELS, getTracking, type OrderStatus, type Tracking } from "@/lib/public-order";
+import { elapsedLabel } from "@/lib/panel-orders";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { PageLoading } from "@/components/list-states";
+import { toast } from "@/components/ui/toast";
 
 const POLL_MS = 15000;
+const CLOCK_MS = 30000;
+
+// Etapas do andamento, na ordem em que acontecem. O cancelamento é um desfecho à parte.
+const STEPS: OrderStatus[] = ["pending", "confirmed", "preparing", "ready", "completed"];
 
 type Problem = "not_found" | "rate_limited" | "network";
+
+// Andamento por texto e ícone (a etapa atual leva aria-current="step"): a cor nunca é a única pista.
+function OrderProgress({ status }: { status: OrderStatus }) {
+  if (status === "cancelled") {
+    return (
+      <p className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">
+        O restaurante cancelou este pedido.
+      </p>
+    );
+  }
+  const current = STEPS.indexOf(status);
+  return (
+    <ol aria-label="Andamento do pedido" className="grid gap-2">
+      {STEPS.map((step, index) => {
+        const state = index < current ? "done" : index === current ? "current" : "next";
+        const Icon = state === "done" ? CircleCheckIcon : state === "current" ? CircleDotIcon : CircleIcon;
+        return (
+          <li
+            key={step}
+            aria-current={state === "current" ? "step" : undefined}
+            className={cn(
+              "flex min-h-8 items-center gap-2 text-sm",
+              state === "current" && "font-semibold",
+              state === "next" && "text-muted-foreground",
+            )}
+          >
+            <Icon className="size-4 shrink-0" />
+            <span>{STATUS_LABELS[step]}</span>
+            <span className="sr-only">
+              {state === "done" ? " (concluída)" : state === "current" ? " (etapa atual)" : " (próxima etapa)"}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 // O token fica só na URL: não é gravado em storage nem enviado a terceiros. A atualização é por
 // polling e para quando o pedido chega a um status final ou a aba fica oculta.
@@ -16,6 +62,8 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
   const [order, setOrder] = useState<Tracking | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadedAt, setLoadedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -23,6 +71,8 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
         const data = await getTracking(token, signal);
         setOrder(data);
         setProblem(null);
+        setLoadedAt(Date.now());
+        setNow(Date.now());
       } catch (error) {
         if (signal?.aborted) return;
         if (error instanceof ApiError && error.status === 404) setProblem("not_found");
@@ -53,13 +103,32 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
     return () => clearInterval(timer);
   }, [final, problem, load]);
 
-  if (loading) return <p className="p-4 text-center text-muted-foreground">Carregando…</p>;
+  // Relógio só para o texto "Atualizado há…" (nenhuma chamada à API)
+  useEffect(() => {
+    if (final) return;
+    const timer = setInterval(() => setNow(Date.now()), CLOCK_MS);
+    return () => clearInterval(timer);
+  }, [final]);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.add({ title: "Link copiado.", type: "success" });
+    } catch {
+      toast.add({
+        title: "Não foi possível copiar. Copie o endereço na barra do navegador.",
+        type: "error",
+      });
+    }
+  }
+
+  if (loading) return <PageLoading label="Carregando o pedido…" />;
 
   if (problem === "not_found") {
     return (
       <div className="grid gap-4 p-4 text-center" role="alert">
         <p>Pedido não encontrado. Confira o link recebido.</p>
-        <Link href={`/r/${encodeURIComponent(slug)}`} className={`${buttonVariants()} mx-auto`}>
+        <Link href={`/r/${encodeURIComponent(slug)}`} className={`${buttonVariants({ size: "lg" })} mx-auto`}>
           Ver cardápio
         </Link>
       </div>
@@ -85,7 +154,14 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
             <p className="text-base" data-testid="order-status" role="status">
               {STATUS_LABELS[order.status]}
             </p>
+            {!final && (
+              <p className="text-sm text-muted-foreground">
+                Atualizado {elapsedLabel(new Date(loadedAt).toISOString(), now)}
+              </p>
+            )}
           </section>
+
+          <OrderProgress status={order.status} />
 
           <ul className="grid gap-2">
             {order.items.map((item, index) => (
@@ -114,11 +190,17 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
       )}
       <div className="flex flex-wrap gap-2">
         {!final && (
-          <Button type="button" variant="outline" onClick={() => void load()}>
+          <Button type="button" variant="outline" size="lg" onClick={() => void load()}>
             Atualizar
           </Button>
         )}
-        <Link href={`/r/${encodeURIComponent(slug)}`} className={buttonVariants({ variant: "ghost" })}>
+        {order && (
+          <Button type="button" variant="outline" size="lg" onClick={() => void copyLink()}>
+            <CopyIcon />
+            Copiar link do pedido
+          </Button>
+        )}
+        <Link href={`/r/${encodeURIComponent(slug)}`} className={buttonVariants({ variant: "ghost", size: "lg" })}>
           Voltar ao cardápio
         </Link>
       </div>

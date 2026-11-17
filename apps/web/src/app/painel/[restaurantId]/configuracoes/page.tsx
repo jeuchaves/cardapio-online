@@ -1,9 +1,12 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { useSession } from "@/components/session-gate";
 import { Button } from "@/components/ui/button";
@@ -11,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api, type RestaurantData } from "@/lib/api";
+import { restaurantMenuUrl } from "@/lib/public-url";
 
 const OPTIONS = [
   { key: "accepts_dine_in", label: "Consumo no local", group: "modes" },
@@ -23,6 +27,7 @@ const OPTIONS = [
 type OptionKey = (typeof OPTIONS)[number]["key"];
 
 export default function SettingsPage() {
+  usePageTitle("Configurações");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -33,7 +38,6 @@ export default function SettingsPage() {
   const [profileFields, setProfileFields] = useState<Record<string, string>>({});
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [options, setOptions] = useState<Record<OptionKey, boolean> | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -56,7 +60,6 @@ export default function SettingsPage() {
     const form = new FormData(event.currentTarget);
     setProfileError(null);
     setProfileFields({});
-    setMessage(null);
     try {
       const { data } = await api<{ data: RestaurantData }>(`/tenant/${restaurantId}/restaurant`, {
         method: "PATCH",
@@ -67,7 +70,7 @@ export default function SettingsPage() {
         },
       });
       setRestaurant(data);
-      setMessage("Dados salvos.");
+      toast.add({ title: "Dados salvos.", type: "success" });
     } catch (err) {
       setProfileFields(fieldErrors(err));
       setProfileError(errorMessage(err));
@@ -76,13 +79,12 @@ export default function SettingsPage() {
 
   async function saveSettings() {
     setSettingsError(null);
-    setMessage(null);
     try {
       await api(`/tenant/${restaurantId}/restaurant/settings`, {
         method: "PATCH",
         body: options,
       });
-      setMessage("Configurações salvas.");
+      toast.add({ title: "Configurações salvas.", type: "success" });
     } catch (err) {
       setSettingsError(errorMessage(err));
     }
@@ -99,14 +101,14 @@ export default function SettingsPage() {
           Somente o dono do restaurante pode alterar estas informações.
         </p>
       )}
-      {message ? <p role="status">{message}</p> : null}
 
       {isOwner ? (
         <Card>
           <CardHeader>
             <CardTitle>Logo</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid gap-2">
+            <p className="text-xs text-muted-foreground">JPEG, PNG ou WebP, até 5 MB.</p>
             <ImageUpload
               label="Logo do restaurante"
               imageUrl={restaurant.logo_url}
@@ -122,7 +124,7 @@ export default function SettingsPage() {
           <CardTitle>Dados do restaurante</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={saveProfile} className="grid gap-4">
+          <form onSubmit={saveProfile} className="grid max-w-2xl gap-4">
             <Field
               name="name"
               label="Nome"
@@ -148,11 +150,32 @@ export default function SettingsPage() {
               error={profileFields.phone}
               disabled={!isOwner}
             />
-            <p className="text-sm text-muted-foreground">
-              Endereço público: <code>/r/{restaurant.slug}</code> (alterado só pela plataforma).
-            </p>
+            <div className="grid gap-1 text-sm">
+              <p className="text-muted-foreground">Link público do cardápio (alterado só pela plataforma):</p>
+              <a
+                href={restaurantMenuUrl(restaurant.slug)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-6 items-center break-all font-medium underline underline-offset-4"
+              >
+                {restaurantMenuUrl(restaurant.slug)}
+              </a>
+              <p className="text-muted-foreground">
+                {isOwner ? (
+                  <>
+                    O QR Code do restaurante está na página{" "}
+                    <Link href={`/painel/${restaurantId}/mesas`} className="underline underline-offset-4">
+                      QR Codes
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  "O QR Code do restaurante fica com o dono, na página QR Codes."
+                )}
+              </p>
+            </div>
             <FormError message={profileError} />
-            {isOwner ? <Button type="submit">Salvar dados</Button> : null}
+            {isOwner ? <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar dados</Button> : null}
           </form>
         </CardContent>
       </Card>
@@ -184,7 +207,7 @@ export default function SettingsPage() {
           ))}
           <FormError message={settingsError} />
           {isOwner ? (
-            <Button type="button" onClick={saveSettings}>
+            <Button type="button" size="lg" className="w-full sm:w-auto sm:justify-self-start" onClick={saveSettings}>
               Salvar configurações
             </Button>
           ) : null}

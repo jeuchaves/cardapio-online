@@ -1,11 +1,14 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Field } from "@/components/field";
-import { FormError, SuccessMessage, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
+import { NewItemCard } from "@/components/new-item-card";
 import { QrCodeCard } from "@/components/qr-code-card";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +17,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api, type RestaurantTable } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { restaurantMenuUrl, tableMenuUrl } from "@/lib/public-url";
 
 // QR Codes do restaurante e das mesas. Mesas são do dono (a API recusa o staff com 403).
 export default function TablesPage() {
+  usePageTitle("QR Codes");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const restaurant = restaurants.find((r) => r.id === restaurantId);
@@ -26,7 +31,6 @@ export default function TablesPage() {
 
   const [tables, setTables] = useState<RestaurantTable[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -47,12 +51,11 @@ export default function TablesPage() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(base, { method: "POST", body: { name: new FormData(formElement).get("name") } });
       formElement.reset();
-      setSuccess("Mesa criada.");
+      toast.add({ title: "Mesa criada.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -65,12 +68,11 @@ export default function TablesPage() {
     event.preventDefault();
     const name = new FormData(event.currentTarget).get("name");
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { name } });
       setEditingId(null);
-      setSuccess("Mesa renomeada.");
+      toast.add({ title: "Mesa renomeada.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -80,7 +82,6 @@ export default function TablesPage() {
 
   async function setActive(table: RestaurantTable, isActive: boolean) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { is_active: isActive } });
       load();
@@ -91,10 +92,9 @@ export default function TablesPage() {
 
   async function remove(table: RestaurantTable) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${table.id}`, { method: "DELETE" });
-      setSuccess("Mesa excluída.");
+      toast.add({ title: "Mesa excluída.", type: "success" });
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -102,36 +102,38 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="grid gap-4">
-      <h1 className="text-xl font-semibold">QR Codes</h1>
+    <div className="grid gap-4 print:grid-cols-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:col-span-full">
+        <div>
+          <h1 className="text-xl font-semibold">QR Codes</h1>
+          <p className="hidden text-sm text-muted-foreground print:block">{restaurant.name}</p>
+        </div>
+        <Button type="button" variant="outline" size="lg" className="print:hidden" onClick={() => window.print()}>
+          Imprimir QR Codes
+        </Button>
+      </div>
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
-      <Card>
+      <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>Cardápio do restaurante</CardTitle>
         </CardHeader>
         <CardContent>
           <QrCodeCard url={restaurantMenuUrl(restaurant.slug)} filename={`qr-${restaurant.slug}`} />
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="mt-3 text-sm text-muted-foreground print:hidden">
             Alterar o endereço (slug) do restaurante invalida os QR Codes já impressos.
           </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova mesa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={create} className="flex flex-wrap items-end gap-3">
-            <div className="min-w-48 flex-1">
-              <Field name="name" label="Nome da mesa" maxLength={60} error={fields.name} required />
-            </div>
-            <Button type="submit">Criar mesa</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <NewItemCard title="Nova mesa" forceOpen={tables?.length === 0}>
+        <form onSubmit={create} className="flex max-w-2xl flex-wrap items-end gap-3">
+          <div className="min-w-48 flex-1">
+            <Field name="name" label="Nome da mesa" maxLength={60} error={fields.name} required />
+          </div>
+          <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Criar mesa</Button>
+        </form>
+      </NewItemCard>
 
       {tables === null ? (
         error ? null : <ListSkeleton />
@@ -139,11 +141,11 @@ export default function TablesPage() {
         <EmptyList>Nenhuma mesa cadastrada.</EmptyList>
       ) : (
         tables.map((table) => (
-          <Card key={table.id}>
+          <Card key={table.id} className={cn("break-inside-avoid", !table.is_active && "print:hidden")}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2">
                 <span>{table.name}</span>
-                <Badge variant={table.is_active ? "secondary" : "outline"}>
+                <Badge variant={table.is_active ? "secondary" : "outline"} className="print:hidden">
                   {table.is_active ? "Ativa" : "Inativa"}
                 </Badge>
               </CardTitle>
@@ -156,7 +158,7 @@ export default function TablesPage() {
               {editingId === table.id ? (
                 <form
                   onSubmit={(event) => void rename(event, table)}
-                  className="flex flex-wrap items-end gap-3"
+                  className="flex flex-wrap items-end gap-3 print:hidden"
                 >
                   <div className="min-w-48 flex-1">
                     <Field
@@ -168,13 +170,13 @@ export default function TablesPage() {
                       required
                     />
                   </div>
-                  <Button type="submit">Salvar</Button>
+                  <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
                   <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
                     Cancelar
                   </Button>
                 </form>
               ) : null}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3 print:hidden">
                 <Button
                   size="sm"
                   variant="outline"

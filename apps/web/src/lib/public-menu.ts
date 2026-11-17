@@ -36,7 +36,13 @@ export type PublicRestaurant = {
   payment_methods: ("cash" | "card" | "pix")[];
 };
 
-export type PublicMenu = { restaurant: PublicRestaurant; categories: PublicCategory[] };
+// `table` só vem quando a URL trouxe ?mesa= e a mesa vale (existe, está ativa e o consumo no local está
+// habilitado); caso contrário a API não devolve o campo e nada sobre a mesa vaza.
+export type PublicMenu = {
+  restaurant: PublicRestaurant;
+  categories: PublicCategory[];
+  table?: { name: string };
+};
 
 const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3333";
 
@@ -44,9 +50,10 @@ const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3333";
  * Devolve null quando o restaurante não existe ou está inativo (404 uniforme da API).
  * `cache` do React: a página e o generateMetadata compartilham uma só chamada por requisição.
  */
-export const getPublicMenu = cache(async (slug: string): Promise<PublicMenu | null> => {
+export const getPublicMenu = cache(async (slug: string, table?: string): Promise<PublicMenu | null> => {
+  const query = table ? `?mesa=${encodeURIComponent(table)}` : "";
   const response = await fetch(
-    `${apiUrl}/api/v1/public/restaurants/${encodeURIComponent(slug)}`,
+    `${apiUrl}/api/v1/public/restaurants/${encodeURIComponent(slug)}${query}`,
     { cache: "no-store" },
   );
   if (response.status === 404) return null;

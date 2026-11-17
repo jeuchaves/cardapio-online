@@ -19,19 +19,19 @@ export function fieldErrors(error: unknown): Record<string, string> {
   return result;
 }
 
+// Leva o foco ao primeiro campo inválido ou, sem campo, à mensagem de erro. Chamar num efeito,
+// depois que o erro foi renderizado.
+export function focusFirstError(form: HTMLFormElement | null) {
+  const target =
+    form?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+    form?.querySelector<HTMLElement>('[role="alert"]');
+  target?.focus();
+}
+
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <Alert variant="destructive" role="alert">
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
-}
-
-export function SuccessMessage({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <Alert role="status">
+    <Alert variant="destructive" role="alert" tabIndex={-1} className="outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );

@@ -1,13 +1,17 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { TemporaryPassword } from "@/components/temporary-password";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { api, type RestaurantData } from "@/lib/api";
 
@@ -15,10 +19,10 @@ import { api, type RestaurantData } from "@/lib/api";
 export default function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [restaurant, setRestaurant] = useState<RestaurantData | null>(null);
+  usePageTitle(restaurant ? restaurant.name : "Restaurante");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [revealed, setRevealed] = useState<string | null>(null);
 
@@ -39,7 +43,6 @@ export default function RestaurantDetailPage() {
     const form = new FormData(event.currentTarget);
     setError(null);
     setFields({});
-    setMessage(null);
     try {
       await api(`/platform/restaurants/${id}`, {
         method: "PATCH",
@@ -51,7 +54,7 @@ export default function RestaurantDetailPage() {
           confirm_slug_change: form.get("confirm_slug_change") === "on" || undefined,
         },
       });
-      setMessage("Dados salvos.");
+      toast.add({ title: "Dados salvos.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -104,7 +107,6 @@ export default function RestaurantDetailPage() {
           {restaurant.is_active ? "Ativo" : "Inativo"}
         </Badge>
       </div>
-      {message ? <p role="status">{message}</p> : null}
       {revealed ? (
         <TemporaryPassword
           title="Nova senha temporária do dono"
@@ -119,7 +121,7 @@ export default function RestaurantDetailPage() {
           <CardTitle>Dados</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={save} className="grid gap-4" key={restaurant.slug + restaurant.name}>
+          <form onSubmit={save} className="grid max-w-2xl gap-4" key={restaurant.slug + restaurant.name}>
             <Field name="name" label="Nome" defaultValue={restaurant.name} maxLength={120} error={fields.name} required />
             <Field
               name="slug"
@@ -132,7 +134,7 @@ export default function RestaurantDetailPage() {
             />
             {slugChanged ? (
               <div className="flex items-start gap-2">
-                <input id="confirm_slug_change" name="confirm_slug_change" type="checkbox" className="mt-1" />
+                <Checkbox id="confirm_slug_change" name="confirm_slug_change" className="mt-1" />
                 <Label htmlFor="confirm_slug_change">
                   Entendo que alterar o slug invalida links e QR Codes já impressos.
                 </Label>
@@ -140,7 +142,7 @@ export default function RestaurantDetailPage() {
             ) : null}
             <Field name="description" label="Descrição" defaultValue={restaurant.description ?? ""} maxLength={1000} error={fields.description} />
             <Field name="phone" label="Telefone" defaultValue={restaurant.phone ?? ""} maxLength={20} error={fields.phone} />
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
           </form>
         </CardContent>
       </Card>
@@ -149,13 +151,23 @@ export default function RestaurantDetailPage() {
         <CardHeader>
           <CardTitle>Situação</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="min-w-48 flex-1 text-sm text-muted-foreground">
             Restaurante inativo deixa de aparecer ao público; o painel continua acessível.
           </p>
-          <Button variant="outline" onClick={() => setActive(!restaurant.is_active)}>
-            {restaurant.is_active ? "Desativar" : "Ativar"}
-          </Button>
+          {restaurant.is_active ? (
+            <ConfirmDelete
+              size="lg"
+              label="Desativar"
+              title={`Desativar "${restaurant.name}"?`}
+              description="O cardápio público e o acompanhamento de pedidos deixam de aparecer ao público. O painel continua acessível e você pode ativar de novo."
+              onConfirm={() => setActive(false)}
+            />
+          ) : (
+            <Button variant="outline" size="lg" onClick={() => setActive(true)}>
+              Ativar
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -163,11 +175,11 @@ export default function RestaurantDetailPage() {
         <CardHeader>
           <CardTitle>Dono</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="min-w-48 flex-1 text-sm text-muted-foreground">
             Gera uma nova senha temporária (exibida uma única vez). Não há recuperação por e-mail.
           </p>
-          <Button variant="outline" onClick={resetOwner}>
+          <Button variant="outline" size="lg" onClick={resetOwner}>
             Nova senha do dono
           </Button>
         </CardContent>

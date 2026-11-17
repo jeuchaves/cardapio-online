@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { PageLoading, ErrorState } from "@/components/list-states";
+import { NavLink } from "@/components/nav-link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ApiError, api, type Me } from "@/lib/api";
 
 const SessionContext = createContext<Me | null>(null);
@@ -49,31 +51,54 @@ export function SessionGate({
     router.replace("/entrar");
   }
 
-  if (error) return <p className="p-6 text-destructive">{error}</p>;
-  if (!session) return <p className="p-6 text-muted-foreground">Carregando…</p>;
+  if (error) {
+    return (
+      <main id="conteudo" tabIndex={-1} className="flex flex-1 flex-col justify-center outline-none">
+        <ErrorState
+          title="Sessão indisponível"
+          message={error}
+          onRetry={() => window.location.reload()}
+        />
+      </main>
+    );
+  }
+  if (!session) {
+    return (
+      <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 outline-none">
+        <PageLoading label="Carregando sua sessão…" />
+      </main>
+    );
+  }
 
   return (
     <SessionContext.Provider value={session}>
-      <header className="flex items-center justify-between gap-4 border-b px-4 py-3">
-        <nav className="flex items-center gap-4 text-sm">
-          <span className="font-semibold">Cardápio Digital</span>
-          {area === "plataforma" ? (
-            <Link href="/plataforma/restaurantes">Restaurantes</Link>
-          ) : (
-            <Link href="/painel">Meus restaurantes</Link>
-          )}
-        </nav>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="hidden text-muted-foreground sm:inline">{session.user.name}</span>
-          <Link href="/conta/senha" className="underline">
-            Trocar senha
-          </Link>
-          <Button variant="outline" size="sm" onClick={logout}>
-            Sair
-          </Button>
+      <header className="border-b bg-card print:hidden">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-1.5">
+          <span className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
+            <span aria-hidden="true" className="hidden size-2.5 rounded-full bg-primary min-[360px]:block" />
+            Cardápio Digital
+          </span>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="hidden max-w-48 truncate text-muted-foreground md:inline">
+              {session.user.name}
+            </span>
+            <Link href="/conta/senha" className={buttonVariants({ variant: "ghost", size: "lg" })}>
+              Trocar senha
+            </Link>
+            <Button variant="outline" size="lg" onClick={logout}>
+              Sair
+            </Button>
+          </div>
         </div>
+        {area === "plataforma" ? (
+          <nav aria-label="Plataforma" className="mx-auto flex w-full max-w-5xl gap-1 px-4 pb-1">
+            <NavLink href="/plataforma/restaurantes">Restaurantes</NavLink>
+          </nav>
+        ) : null}
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 p-4">{children}</main>
+      <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 p-4 outline-none">
+        {children}
+      </main>
     </SessionContext.Provider>
   );
 }

@@ -22,12 +22,14 @@ export function ConfirmDelete({
   description,
   onConfirm,
   disabled,
+  size = "sm",
 }: {
   label?: string;
   title: string;
   description: string;
   onConfirm: () => void | Promise<void>;
   disabled?: boolean;
+  size?: "sm" | "lg";
 }) {
   // Trava síncrona: um segundo clique antes de a requisição terminar não reenvia a exclusão.
   const pending = useRef(false);
@@ -44,7 +46,7 @@ export function ConfirmDelete({
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        render={<Button size="sm" variant="outline" disabled={disabled} />}
+        render={<Button size={size} variant="outline" disabled={disabled} />}
       >
         {label}
       </AlertDialogTrigger>

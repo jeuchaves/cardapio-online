@@ -1,11 +1,14 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, SuccessMessage, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
+import { NewItemCard } from "@/components/new-item-card";
 import { useSession } from "@/components/session-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +31,7 @@ function CategoryForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -45,6 +48,7 @@ function CategoryForm({
         max={9999}
         step={1}
         defaultValue={category?.sort_order ?? 0}
+        hint="Número menor aparece primeiro; com o mesmo número, vale a ordem alfabética."
         error={fields.sort_order}
       />
       <div className="sm:col-span-2">
@@ -57,7 +61,7 @@ function CategoryForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
@@ -79,6 +83,7 @@ function readForm(form: FormData) {
 }
 
 export default function CategoriesPage() {
+  usePageTitle("Categorias");
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { restaurants } = useSession();
   const isOwner = restaurants.find((r) => r.id === restaurantId)?.role === "owner";
@@ -86,7 +91,6 @@ export default function CategoriesPage() {
 
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -106,12 +110,11 @@ export default function CategoriesPage() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setError(null);
-    setSuccess(null);
     setFields({});
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
-      setSuccess("Categoria salva.");
+      toast.add({ title: "Categoria salva.", type: "success" });
       load();
     } catch (err) {
       setFields(fieldErrors(err));
@@ -131,10 +134,9 @@ export default function CategoriesPage() {
 
   async function remove(category: Category) {
     setError(null);
-    setSuccess(null);
     try {
       await api(`${base}/${category.id}`, { method: "DELETE" });
-      setSuccess("Categoria excluída.");
+      toast.add({ title: "Categoria excluída.", type: "success" });
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -145,23 +147,17 @@ export default function CategoriesPage() {
     <div className="grid gap-4">
       <h1 className="text-xl font-semibold">Categorias</h1>
       <FormError message={error} />
-      <SuccessMessage message={success} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryForm
-            fields={editingId ? {} : fields}
-            submitLabel="Criar categoria"
-            onSubmit={(event) => {
-              const formElement = event.currentTarget;
-              void save(event, { path: base, method: "POST" }, () => formElement.reset());
-            }}
-          />
-        </CardContent>
-      </Card>
+      <NewItemCard title="Nova categoria" forceOpen={categories?.length === 0}>
+        <CategoryForm
+          fields={editingId ? {} : fields}
+          submitLabel="Criar categoria"
+          onSubmit={(event) => {
+            const formElement = event.currentTarget;
+            void save(event, { path: base, method: "POST" }, () => formElement.reset());
+          }}
+        />
+      </NewItemCard>
 
       {categories === null ? (
         error ? null : <ListSkeleton />

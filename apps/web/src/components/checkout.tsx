@@ -18,9 +18,46 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/field";
 import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { useTableCheck } from "@/lib/use-table-check";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { PageLoading } from "@/components/list-states";
 
 type Mode = PublicRestaurant["fulfillment_modes"][number];
 type Payment = PublicRestaurant["payment_methods"][number];
+
+// Linha de escolha única. O rótulo não envolve o radio: o Base UI mantém um `input` oculto junto do
+// controle, e dentro de um `label` o leitor de tela passaria a ver dois controles com o mesmo nome.
+// O nome vem de `aria-labelledby`, e o clique no texto seleciona pela própria linha.
+function ChoiceRow({
+  id,
+  value,
+  disabled = false,
+  onSelect,
+  children,
+}: {
+  id: string;
+  value: string;
+  disabled?: boolean;
+  onSelect: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      onClick={() => {
+        if (!disabled) onSelect();
+      }}
+      className={cn(
+        "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+    >
+      <RadioGroupItem value={value} disabled={disabled} aria-labelledby={id} />
+      <span id={id}>{children}</span>
+    </div>
+  );
+}
 
 const MODES: Record<Mode, string> = { dine_in: "Consumo no local", pickup: "Retirada" };
 const PAYMENTS: Record<Payment, string> = { cash: "Dinheiro", card: "Cartão", pix: "Pix" };
@@ -70,7 +107,11 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
   const quote = quoted && quoted.signature === signature ? quoted.quote : null;
 
   const modes = restaurant.fulfillment_modes;
-  const table = cart.table;
+  // A mesa guardada do QR Code é conferida na API antes do envio: mesa inexistente, desativada ou sem
+  // consumo no local habilitado deixa de ser uma opção (a API também recusa ao criar o pedido)
+  const tableCheck = useTableCheck(slug, cart.table, cart.ready);
+  const tableInvalid = tableCheck.state === "invalid";
+  const table = tableInvalid ? null : cart.table;
   // Consumo no local só é possível com o identificador da mesa vindo do QR Code
   const dineInAvailable = modes.includes("dine_in") && table !== null;
   const pickupAvailable = modes.includes("pickup");
@@ -151,14 +192,14 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
   }
 
   if (!cart.ready) {
-    return <p className="p-4 text-center text-muted-foreground">Carregando…</p>;
+    return <PageLoading label="Carregando o carrinho…" />;
   }
 
   if (cart.lines.length === 0) {
     return (
       <div className="grid gap-4 p-4 text-center">
         <p className="text-muted-foreground">Seu carrinho está vazio.</p>
-        <Link href={base} className={`${buttonVariants()} mx-auto`}>
+        <Link href={base} className={`${buttonVariants({ size: "lg" })} mx-auto`}>
           Ver cardápio
         </Link>
       </div>
@@ -209,7 +250,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
+                      size="icon-lg"
                       aria-label={`Diminuir ${line.productName}`}
                       disabled={line.quantity <= 1}
                       onClick={() => cart.setQuantity(line.key, line.quantity - 1)}
@@ -220,7 +261,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
+                      size="icon-lg"
                       aria-label={`Aumentar ${line.productName}`}
                       disabled={line.quantity >= MAX_QUANTITY}
                       onClick={() => cart.setQuantity(line.key, line.quantity + 1)}
@@ -231,7 +272,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="lg"
                     aria-label={`Remover ${line.productName}`}
                     onClick={() => cart.remove(line.key)}
                   >
@@ -290,28 +331,38 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
         />
 
         <fieldset className="grid gap-2">
-          <legend className="mb-1 text-sm font-medium">Como você quer receber</legend>
-          {(["dine_in", "pickup"] as const)
-            .filter((mode) => modes.includes(mode))
-            .map((mode) => {
-              const enabled = mode === "dine_in" ? dineInAvailable : pickupAvailable;
-              return (
-                <Label key={mode} className="flex items-center gap-2 rounded-lg border p-3 font-normal">
-                  <input
-                    type="radio"
-                    name="fulfillment"
+          <legend id="legenda-atendimento" className="mb-1 text-sm font-medium">
+            Como você quer receber
+          </legend>
+          <RadioGroup
+            aria-labelledby="legenda-atendimento"
+            value={chosenMode ?? ""}
+            onValueChange={(value) => setFulfillment(value as Mode)}
+          >
+            {(["dine_in", "pickup"] as const)
+              .filter((mode) => modes.includes(mode))
+              .map((mode) => {
+                const enabled = mode === "dine_in" ? dineInAvailable : pickupAvailable;
+                return (
+                  <ChoiceRow
+                    key={mode}
+                    id={`atendimento-${mode}`}
                     value={mode}
                     disabled={!enabled}
-                    checked={chosenMode === mode}
-                    onChange={() => setFulfillment(mode)}
-                  />
-                  {MODES[mode]}
-                </Label>
-              );
-            })}
+                    onSelect={() => setFulfillment(mode)}
+                  >
+                    {mode === "dine_in" && tableCheck.state === "valid"
+                      ? `${MODES[mode]} · ${tableCheck.name}`
+                      : MODES[mode]}
+                  </ChoiceRow>
+                );
+              })}
+          </RadioGroup>
           {modes.includes("dine_in") && !dineInAvailable && (
-            <p className="text-sm text-muted-foreground">
-              Para consumir no local, abra o cardápio pelo QR Code da sua mesa.
+            <p role={tableInvalid ? "status" : undefined} className="text-sm text-muted-foreground">
+              {tableInvalid
+                ? "O QR Code da mesa não é válido ou a mesa foi desativada. Abra o cardápio de novo pelo QR Code da mesa ou escolha retirada."
+                : "Para consumir no local, abra o cardápio pelo QR Code da sua mesa."}
             </p>
           )}
           {chosenMode === null && (
@@ -322,24 +373,30 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
         </fieldset>
 
         <fieldset className="grid gap-2">
-          <legend className="mb-1 text-sm font-medium">Pagamento (presencial)</legend>
-          {restaurant.payment_methods.map((method) => (
-            <Label key={method} className="flex items-center gap-2 rounded-lg border p-3 font-normal">
-              <input
-                type="radio"
-                name="payment"
+          <legend id="legenda-pagamento" className="mb-1 text-sm font-medium">
+            Pagamento (presencial)
+          </legend>
+          <RadioGroup
+            aria-labelledby="legenda-pagamento"
+            value={payment ?? ""}
+            onValueChange={(value) => setPayment(value as Payment)}
+          >
+            {restaurant.payment_methods.map((method) => (
+              <ChoiceRow
+                key={method}
+                id={`pagamento-${method}`}
                 value={method}
-                checked={payment === method}
-                onChange={() => setPayment(method)}
-              />
-              {PAYMENTS[method]}
-            </Label>
-          ))}
+                onSelect={() => setPayment(method)}
+              >
+                {PAYMENTS[method]}
+              </ChoiceRow>
+            ))}
+          </RadioGroup>
         </fieldset>
 
         <div className="grid gap-1.5">
           <Label htmlFor="notes">Observações (opcional)</Label>
-          <textarea
+          <Textarea
             id="notes"
             name="notes"
             rows={3}
@@ -347,18 +404,22 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             aria-invalid={errors.notes ? true : undefined}
-            className="rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            aria-describedby={errors.notes ? "notes-error" : undefined}
           />
-          {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
+          {errors.notes && (
+            <p id="notes-error" className="text-sm text-destructive">
+              {errors.notes}
+            </p>
+          )}
         </div>
       </section>
 
       <FormError message={error} />
       <div className="grid gap-2">
-        <Button type="submit" size="lg" className="h-11" disabled={busy || chosenMode === null || payment === null}>
+        <Button type="submit" size="lg" disabled={busy || chosenMode === null || payment === null}>
           {busy ? "Enviando…" : "Enviar pedido"}
         </Button>
-        <Link href={base} className={buttonVariants({ variant: "ghost" })}>
+        <Link href={base} className={buttonVariants({ variant: "ghost", size: "lg" })}>
           Voltar ao cardápio
         </Link>
       </div>

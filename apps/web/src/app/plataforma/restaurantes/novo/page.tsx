@@ -1,5 +1,6 @@
 "use client";
 
+import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useState } from "react";
 import { Field } from "@/components/field";
@@ -7,6 +8,7 @@ import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
 import { TemporaryPassword } from "@/components/temporary-password";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ApiError, api } from "@/lib/api";
 
@@ -16,6 +18,7 @@ type Created = {
 };
 
 export default function NewRestaurantPage() {
+  usePageTitle("Novo restaurante");
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [needsLinkConfirmation, setNeedsLinkConfirmation] = useState(false);
@@ -78,10 +81,10 @@ export default function NewRestaurantPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Novo restaurante</CardTitle>
+        <CardTitle as="h1">Novo restaurante</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="grid gap-4">
+        <form onSubmit={onSubmit} className="grid max-w-2xl gap-4">
           <Field name="name" label="Nome" maxLength={120} error={fields.name} required />
           <Field
             name="slug"
@@ -112,7 +115,7 @@ export default function NewRestaurantPage() {
           />
           {needsLinkConfirmation ? (
             <div className="flex items-start gap-2">
-              <input id="confirm_link" name="confirm_link" type="checkbox" className="mt-1" />
+              <Checkbox id="confirm_link" name="confirm_link" className="mt-1" />
               <Label htmlFor="confirm_link">
                 Este e-mail já tem cadastro. Vincular o usuário existente como dono (a senha e os
                 dados dele não são alterados).
@@ -120,7 +123,7 @@ export default function NewRestaurantPage() {
             </div>
           ) : null}
           <FormError message={error} />
-          <Button type="submit">Cadastrar restaurante</Button>
+          <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Cadastrar restaurante</Button>
         </form>
       </CardContent>
     </Card>
