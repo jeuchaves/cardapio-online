@@ -18,8 +18,8 @@ import { ApiError, api, formatPrice } from "@/lib/api";
 import {
   FULFILLMENT_LABELS,
   STATUSES,
-  STATUS_LABELS,
   STATUS_VIEWS,
+  STATUS_LABELS,
   elapsedLabel,
   formatDateTime,
   nextAction,
@@ -274,7 +274,7 @@ export default function OrdersPage() {
                       </div>
                     </Link>
                     {action ? (
-                      <Button size="lg" disabled={busyId !== null} onClick={() => void advance(order)}>
+                      <Button variant="outline" size="lg" disabled={busyId !== null} onClick={() => void advance(order)}>
                         {action.short} #{order.order_number}
                       </Button>
                     ) : null}

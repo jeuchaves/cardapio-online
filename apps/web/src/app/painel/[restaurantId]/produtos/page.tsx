@@ -80,7 +80,7 @@ function ProductForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -123,7 +123,7 @@ function ProductForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" size="lg">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
@@ -303,7 +303,10 @@ export default function ProductsPage() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-xl font-semibold">Produtos</h1>
+      <div className="grid gap-1">
+        <h1 className="text-xl font-semibold">Produtos</h1>
+        <p className="text-sm text-muted-foreground">Imagens: JPEG, PNG ou WebP, até 5 MB.</p>
+      </div>
       <FormError message={error} />
 
       <Card>
@@ -363,7 +366,7 @@ export default function ProductsPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2">
                 <span>
-                  {product.name} <span className="font-normal">· {formatPrice(product.price)}</span>
+                  {product.name} <span className="font-normal whitespace-nowrap">· {formatPrice(product.price)}</span>
                 </span>
                 <Badge variant={product.is_available ? "secondary" : "outline"}>
                   {product.is_available ? "Disponível" : "Indisponível"}

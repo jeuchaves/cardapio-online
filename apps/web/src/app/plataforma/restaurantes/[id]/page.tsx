@@ -120,7 +120,7 @@ export default function RestaurantDetailPage() {
           <CardTitle>Dados</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={save} className="grid gap-4" key={restaurant.slug + restaurant.name}>
+          <form onSubmit={save} className="grid max-w-2xl gap-4" key={restaurant.slug + restaurant.name}>
             <Field name="name" label="Nome" defaultValue={restaurant.name} maxLength={120} error={fields.name} required />
             <Field
               name="slug"
@@ -141,7 +141,7 @@ export default function RestaurantDetailPage() {
             ) : null}
             <Field name="description" label="Descrição" defaultValue={restaurant.description ?? ""} maxLength={1000} error={fields.description} />
             <Field name="phone" label="Telefone" defaultValue={restaurant.phone ?? ""} maxLength={20} error={fields.phone} />
-            <Button type="submit" size="lg">Salvar</Button>
+            <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
           </form>
         </CardContent>
       </Card>

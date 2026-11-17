@@ -105,7 +105,8 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Logo</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid gap-2">
+            <p className="text-xs text-muted-foreground">JPEG, PNG ou WebP, até 5 MB.</p>
             <ImageUpload
               label="Logo do restaurante"
               imageUrl={restaurant.logo_url}
@@ -121,7 +122,7 @@ export default function SettingsPage() {
           <CardTitle>Dados do restaurante</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={saveProfile} className="grid gap-4">
+          <form onSubmit={saveProfile} className="grid max-w-2xl gap-4">
             <Field
               name="name"
               label="Nome"
@@ -151,7 +152,7 @@ export default function SettingsPage() {
               Endereço público: <code>/r/{restaurant.slug}</code> (alterado só pela plataforma).
             </p>
             <FormError message={profileError} />
-            {isOwner ? <Button type="submit" size="lg">Salvar dados</Button> : null}
+            {isOwner ? <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar dados</Button> : null}
           </form>
         </CardContent>
       </Card>
@@ -183,7 +184,7 @@ export default function SettingsPage() {
           ))}
           <FormError message={settingsError} />
           {isOwner ? (
-            <Button type="button" size="lg" onClick={saveSettings}>
+            <Button type="button" size="lg" className="w-full sm:w-auto sm:justify-self-start" onClick={saveSettings}>
               Salvar configurações
             </Button>
           ) : null}

@@ -112,7 +112,7 @@ export default function StaffPage() {
           <CardTitle>Novo atendente</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={create} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={create} className="grid max-w-2xl gap-4 sm:grid-cols-2">
             <Field name="name" label="Nome" maxLength={120} error={fields.name} required />
             <Field
               name="email"
@@ -122,7 +122,7 @@ export default function StaffPage() {
               error={fields.email}
               required
             />
-            <Button type="submit" size="lg" className="sm:col-span-2">
+            <Button type="submit" size="lg" className="w-full sm:col-span-2 sm:w-auto sm:justify-self-start">
               Criar atendente
             </Button>
           </form>

@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/api";
 import { MAX_QUANTITY, useCart } from "@/lib/cart";
 import type { PublicProduct } from "@/lib/public-menu";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -75,9 +76,9 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
     <div className="relative">
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger
-        className="flex w-full items-start gap-3 rounded-xl p-3 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="flex w-full items-start gap-3 rounded-xl bg-card p-3 text-left ring-1 ring-border transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        <span className="grid min-w-0 flex-1 gap-1">
+        <span className={cn("grid min-w-0 flex-1 gap-1", product.addons.length === 0 && "pr-12")}>
           <span id={nameId} className="font-medium">{product.name}</span>
           {product.description && (
             <span className="line-clamp-2 text-sm text-muted-foreground">{product.description}</span>
@@ -190,7 +191,7 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
       <Button
         type="button"
         size="icon-lg"
-        className="absolute right-3 bottom-3 rounded-full shadow-md ring-2 ring-background"
+        className={cn("absolute bottom-3 rounded-full", product.image_url ? "right-30" : "right-3")}
         aria-label="Adicionar ao carrinho"
         aria-describedby={nameId}
         onClick={quickAdd}

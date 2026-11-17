@@ -84,7 +84,7 @@ export default function NewRestaurantPage() {
         <CardTitle as="h1">Novo restaurante</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="grid gap-4">
+        <form onSubmit={onSubmit} className="grid max-w-2xl gap-4">
           <Field name="name" label="Nome" maxLength={120} error={fields.name} required />
           <Field
             name="slug"
@@ -123,7 +123,7 @@ export default function NewRestaurantPage() {
             </div>
           ) : null}
           <FormError message={error} />
-          <Button type="submit" size="lg">Cadastrar restaurante</Button>
+          <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Cadastrar restaurante</Button>
         </form>
       </CardContent>
     </Card>

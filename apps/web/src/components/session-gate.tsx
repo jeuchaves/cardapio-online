@@ -72,9 +72,12 @@ export function SessionGate({
 
   return (
     <SessionContext.Provider value={session}>
-      <header className="border-b">
+      <header className="border-b bg-card">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-1.5">
-          <span className="font-semibold">Cardápio Digital</span>
+          <span className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
+            <span aria-hidden="true" className="hidden size-2.5 rounded-full bg-primary min-[360px]:block" />
+            Cardápio Digital
+          </span>
           <div className="flex items-center gap-1 text-sm">
             <span className="hidden max-w-48 truncate text-muted-foreground md:inline">
               {session.user.name}

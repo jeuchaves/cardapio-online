@@ -121,11 +121,11 @@ export default function TablesPage() {
           <CardTitle>Nova mesa</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={create} className="flex flex-wrap items-end gap-3">
+          <form onSubmit={create} className="flex max-w-2xl flex-wrap items-end gap-3">
             <div className="min-w-48 flex-1">
               <Field name="name" label="Nome da mesa" maxLength={60} error={fields.name} required />
             </div>
-            <Button type="submit" size="lg">Criar mesa</Button>
+            <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Criar mesa</Button>
           </form>
         </CardContent>
       </Card>
@@ -165,7 +165,7 @@ export default function TablesPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" size="lg">Salvar</Button>
+                  <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar</Button>
                   <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
                     Cancelar
                   </Button>

@@ -75,7 +75,7 @@ export function CategoryNav({ categories }: { categories: Item[] }) {
             onClick={() => setActive(category.id)}
             className={cn(
               "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm transition-colors",
-              current ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted",
+              current ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
             )}
           >
             {category.name}

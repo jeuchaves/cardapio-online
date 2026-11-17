@@ -30,7 +30,7 @@ function AddonForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -58,7 +58,7 @@ function AddonForm({
         />
       </div>
       <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" size="lg">{submitLabel}</Button>
+        <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">{submitLabel}</Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar

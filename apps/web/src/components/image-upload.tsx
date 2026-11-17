@@ -72,11 +72,7 @@ export function ImageUpload({
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={label} className="size-16 rounded-md border object-cover" />
-        ) : (
-          <div className="flex size-16 items-center justify-center rounded-md border text-xs text-muted-foreground">
-            Sem imagem
-          </div>
-        )}
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -106,7 +102,6 @@ export function ImageUpload({
           onChange={upload}
         />
       </div>
-      <p className="text-xs text-muted-foreground">JPEG, PNG ou WebP, até 5 MB.</p>
       <FormError message={error} />
     </div>
   );
