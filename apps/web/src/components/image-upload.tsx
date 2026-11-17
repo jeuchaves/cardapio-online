@@ -71,7 +71,7 @@ export function ImageUpload({
       <div className="flex items-center gap-3">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={label} className="size-16 rounded-md border object-cover" />
+          <img src={imageUrl} alt={label} width={64} height={64} className="size-16 rounded-md border object-cover" />
         ) : null}
         <div className="flex flex-wrap gap-2">
           <Button

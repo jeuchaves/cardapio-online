@@ -128,7 +128,7 @@ export function OrderTracking({ token, slug }: { token: string; slug: string }) 
     return (
       <div className="grid gap-4 p-4 text-center" role="alert">
         <p>Pedido não encontrado. Confira o link recebido.</p>
-        <Link href={`/r/${encodeURIComponent(slug)}`} className={`${buttonVariants()} mx-auto`}>
+        <Link href={`/r/${encodeURIComponent(slug)}`} className={`${buttonVariants({ size: "lg" })} mx-auto`}>
           Ver cardápio
         </Link>
       </div>

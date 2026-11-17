@@ -25,7 +25,7 @@ export function QrCodeCard({ url, filename }: { url: string; filename: string })
     <div className="grid justify-items-start gap-2">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={`QR Code para ${url}`} className="size-40 rounded-md border print:size-56" />
+        <img src={image} alt={`QR Code para ${url}`} width={160} height={160} className="size-40 rounded-md border print:size-56" />
       ) : (
         <div className="size-40 rounded-md border bg-muted" aria-busy={!failed} />
       )}

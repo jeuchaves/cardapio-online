@@ -199,7 +199,7 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
     return (
       <div className="grid gap-4 p-4 text-center">
         <p className="text-muted-foreground">Seu carrinho está vazio.</p>
-        <Link href={base} className={`${buttonVariants()} mx-auto`}>
+        <Link href={base} className={`${buttonVariants({ size: "lg" })} mx-auto`}>
           Ver cardápio
         </Link>
       </div>
