@@ -88,12 +88,12 @@ export function PublicProductCard({ product }: { product: PublicProduct }) {
           aria-describedby={product.description ? descId : undefined}
           className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         />
-        <div className="grid min-w-0 flex-1 content-start gap-1">
-          <span id={nameId} className="text-base leading-snug font-medium break-words">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-1">
+          <span id={nameId} className="text-base leading-snug font-medium [overflow-wrap:anywhere]">
             {product.name}
           </span>
           {product.description && (
-            <span id={descId} className="line-clamp-2 text-base leading-snug break-words text-muted-foreground">
+            <span id={descId} className="line-clamp-2 text-base leading-snug text-muted-foreground [overflow-wrap:anywhere]">
               {product.description}
             </span>
           )}

@@ -23,7 +23,7 @@ export function ExpandableText({ children, className }: { children: string; clas
 
   return (
     <div className="grid justify-items-start gap-1">
-      <p ref={measure} className={cn("break-words", !expanded && "line-clamp-3", className)}>
+      <p ref={measure} className={cn("[overflow-wrap:anywhere]", !expanded && "line-clamp-3", className)}>
         {children}
       </p>
       {clamped || expanded ? (

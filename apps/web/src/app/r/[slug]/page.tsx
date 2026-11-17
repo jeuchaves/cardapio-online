@@ -66,7 +66,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
               {restaurant.name.trim().charAt(0).toUpperCase()}
             </span>
           )}
-          <h1 className="min-w-0 text-2xl leading-tight font-semibold tracking-tight break-words text-balance">
+          <h1 className="min-w-0 text-2xl leading-tight font-semibold tracking-tight text-balance [overflow-wrap:anywhere]">
             {restaurant.name}
           </h1>
         </div>

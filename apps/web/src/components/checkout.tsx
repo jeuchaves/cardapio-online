@@ -255,8 +255,8 @@ export function Checkout({ restaurant }: { restaurant: PublicRestaurant }) {
                       {line.productName.trim().charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    <span className="font-medium">{line.productName}</span>
+                  <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5">
+                    <span className="font-medium [overflow-wrap:anywhere]">{line.productName}</span>
                     {line.addons.map((addon) => (
                       <span key={addon.id} className="text-sm text-muted-foreground">
                         + {addon.name}
