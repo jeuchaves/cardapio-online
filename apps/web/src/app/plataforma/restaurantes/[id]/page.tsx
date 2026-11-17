@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { TemporaryPassword } from "@/components/temporary-password";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +23,7 @@ export default function RestaurantDetailPage() {
   const [restaurant, setRestaurant] = useState<RestaurantData | null>(null);
   usePageTitle(restaurant ? restaurant.name : "Restaurante");
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [slug, setSlug] = useState("");
   const [revealed, setRevealed] = useState<string | null>(null);
 
@@ -43,8 +42,8 @@ export default function RestaurantDetailPage() {
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(event.currentTarget)) return;
     try {
       await api(`/platform/restaurants/${id}`, {
         method: "PATCH",
@@ -59,13 +58,12 @@ export default function RestaurantDetailPage() {
       toast.add({ title: "Dados salvos.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function setActive(isActive: boolean) {
-    setError(null);
+    clearError();
     try {
       await api(`/platform/restaurants/${id}/status`, {
         method: "PATCH",
@@ -73,7 +71,7 @@ export default function RestaurantDetailPage() {
       });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -84,7 +82,7 @@ export default function RestaurantDetailPage() {
       )
     )
       return;
-    setError(null);
+    clearError();
     try {
       const { data } = await api<{ data: { temporary_password: string } }>(
         `/platform/restaurants/${id}/owner/reset-password`,
@@ -92,7 +90,7 @@ export default function RestaurantDetailPage() {
       );
       setRevealed(data.temporary_password);
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -116,14 +114,14 @@ export default function RestaurantDetailPage() {
           onClose={() => setRevealed(null)}
         />
       ) : null}
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <Card>
         <CardHeader>
           <CardTitle>Dados</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={save} className="grid max-w-2xl gap-4" key={restaurant.slug + restaurant.name}>
+          <form noValidate onSubmit={save} className="grid max-w-2xl gap-4" key={restaurant.slug + restaurant.name}>
             <Field name="name" label="Nome" defaultValue={restaurant.name} maxLength={120} error={fields.name} required />
             <Field
               name="slug"

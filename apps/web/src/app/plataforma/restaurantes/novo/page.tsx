@@ -6,7 +6,7 @@ import { usePageTitle } from "@/lib/use-page-title";
 import Link from "next/link";
 import { useState } from "react";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, fieldErrors, useFormFeedback } from "@/components/form-error";
 import { TemporaryPassword } from "@/components/temporary-password";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,7 @@ type Created = {
 
 export default function NewRestaurantPage() {
   usePageTitle("Novo restaurante");
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, setFields, reset, report, invalid } = useFormFeedback();
   const [needsLinkConfirmation, setNeedsLinkConfirmation] = useState(false);
   const [created, setCreated] = useState<Created | null>(null);
   const [showPassword, setShowPassword] = useState(true);
@@ -30,8 +29,8 @@ export default function NewRestaurantPage() {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(event.currentTarget)) return;
     try {
       const { data } = await api<{ data: Created }>("/platform/restaurants", {
         method: "POST",
@@ -52,7 +51,7 @@ export default function NewRestaurantPage() {
         slug: details.slug ?? (err instanceof ApiError && err.code === "SLUG_TAKEN" ? err.message : ""),
         ...details,
       });
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -86,7 +85,7 @@ export default function NewRestaurantPage() {
         <CardTitle as="h1">Novo restaurante</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="grid max-w-2xl gap-4">
+        <form noValidate onSubmit={onSubmit} className="grid max-w-2xl gap-4">
           <Field name="name" label="Nome" maxLength={120} error={fields.name} required />
           <Field
             name="slug"
@@ -124,7 +123,7 @@ export default function NewRestaurantPage() {
               </Label>
             </div>
           ) : null}
-          <FormError message={error} />
+          <FormError message={error} kind={kind} />
           <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Cadastrar restaurante</Button>
         </form>
       </CardContent>

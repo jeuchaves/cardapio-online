@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
@@ -49,7 +49,12 @@ function CategorySelect({
     <div className="grid gap-1.5">
       <Label htmlFor="category_id">Categoria</Label>
       <Select name="category_id" defaultValue={defaultValue} items={items} required>
-        <SelectTrigger id="category_id" className="w-full" aria-invalid={error ? true : undefined}>
+        <SelectTrigger
+          id="category_id"
+          className="w-full"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "category_id-error" : undefined}
+        >
           <SelectValue placeholder="Selecione…" />
         </SelectTrigger>
         <SelectContent>
@@ -60,7 +65,11 @@ function CategorySelect({
           ))}
         </SelectContent>
       </Select>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p id="category_id-error" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -81,7 +90,7 @@ function ProductForm({
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+    <form noValidate onSubmit={onSubmit} className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <Field
         name="name"
         label="Nome"
@@ -163,19 +172,19 @@ function AddonPicker({
   onSaved: () => void;
 }) {
   const [selected, setSelected] = useState<string[]>(product.addons.map((addon) => addon.id));
-  const [error, setError] = useState<string | null>(null);
+  const { error, kind, clearError, report } = useFormFeedback();
 
   function toggle(id: string, checked: boolean) {
     setSelected(checked ? [...selected, id] : selected.filter((item) => item !== id));
   }
 
   async function save() {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${product.id}/addons`, { method: "PUT", body: { addon_ids: selected } });
       onSaved();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -204,7 +213,7 @@ function AddonPicker({
           ))}
         </fieldset>
       )}
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
       <div className="flex gap-2">
         <Button size="sm" onClick={save}>
           Salvar adicionais
@@ -229,8 +238,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<ProductList | null>(null);
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, setFields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [editing, setEditing] = useState<{ id: string; mode: "edit" | "addons" } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const load = () => setReloadKey((key) => key + 1);
@@ -244,16 +252,16 @@ export default function ProductsPage() {
         setCategories(categoryList.data);
         setAddons(addonList.data);
       })
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [restaurantId, reloadKey]);
+      .catch(report);
+  }, [restaurantId, reloadKey, report]);
 
   useEffect(() => {
     const query = new URLSearchParams({ page: String(page) });
     if (filter) query.set("category_id", filter);
     api<ProductList>(`${base}?${query}`)
       .then(setProducts)
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [base, filter, page, reloadKey]);
+      .catch(report);
+  }, [base, filter, page, reloadKey, report]);
 
   async function save(
     event: React.FormEvent<HTMLFormElement>,
@@ -262,37 +270,36 @@ export default function ProductsPage() {
   ) {
     event.preventDefault();
     const formElement = event.currentTarget;
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(formElement)) return;
     try {
       await api(request.path, { method: request.method, body: readForm(new FormData(formElement)) });
       onDone();
       toast.add({ title: "Produto salvo.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function setAvailable(product: Product, isAvailable: boolean) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${product.id}`, { method: "PATCH", body: { is_available: isAvailable } });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   async function remove(product: Product) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${product.id}`, { method: "DELETE" });
       toast.add({ title: "Produto excluído.", type: "success" });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -309,7 +316,7 @@ export default function ProductsPage() {
         <h1 className="text-xl font-semibold">Produtos</h1>
         <p className="text-sm text-muted-foreground">Imagens: JPEG, PNG ou WebP, até 5 MB.</p>
       </div>
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <NewItemCard title="Novo produto" forceOpen={(products?.meta.total === 0 && !filter) || categories?.length === 0}>
         {categories && categories.length === 0 ? (

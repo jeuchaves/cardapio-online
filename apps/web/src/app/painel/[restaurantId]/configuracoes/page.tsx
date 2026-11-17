@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, errorMessage, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { ImageUpload } from "@/components/image-upload";
 import { useSession } from "@/components/session-gate";
@@ -36,9 +36,8 @@ export default function SettingsPage() {
 
   const [restaurant, setRestaurant] = useState<RestaurantData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileFields, setProfileFields] = useState<Record<string, string>>({});
-  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const profile = useFormFeedback();
+  const settings = useFormFeedback();
   const [options, setOptions] = useState<Record<OptionKey, boolean> | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -60,8 +59,8 @@ export default function SettingsPage() {
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setProfileError(null);
-    setProfileFields({});
+    profile.reset();
+    if (profile.invalid(event.currentTarget)) return;
     try {
       const { data } = await api<{ data: RestaurantData }>(`/tenant/${restaurantId}/restaurant`, {
         method: "PATCH",
@@ -74,13 +73,12 @@ export default function SettingsPage() {
       setRestaurant(data);
       toast.add({ title: "Dados salvos.", type: "success" });
     } catch (err) {
-      setProfileFields(fieldErrors(err));
-      setProfileError(errorMessage(err));
+      profile.fail(err);
     }
   }
 
   async function saveSettings() {
-    setSettingsError(null);
+    settings.clearError();
     try {
       await api(`/tenant/${restaurantId}/restaurant/settings`, {
         method: "PATCH",
@@ -88,7 +86,7 @@ export default function SettingsPage() {
       });
       toast.add({ title: "Configurações salvas.", type: "success" });
     } catch (err) {
-      setSettingsError(errorMessage(err));
+      settings.report(err);
     }
   }
 
@@ -126,13 +124,13 @@ export default function SettingsPage() {
           <CardTitle>Dados do restaurante</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={saveProfile} className="grid max-w-2xl gap-4">
+          <form noValidate onSubmit={saveProfile} className="grid max-w-2xl gap-4">
             <Field
               name="name"
               label="Nome"
               defaultValue={restaurant.name}
               maxLength={120}
-              error={profileFields.name}
+              error={profile.fields.name}
               disabled={!isOwner}
               required
             />
@@ -141,14 +139,14 @@ export default function SettingsPage() {
               label="Descrição"
               defaultValue={restaurant.description ?? ""}
               maxLength={1000}
-              error={profileFields.description}
+              error={profile.fields.description}
               disabled={!isOwner}
             />
             <PhoneField
               name="phone"
               label="Telefone"
               defaultValue={restaurant.phone ?? ""}
-              error={profileFields.phone}
+              error={profile.fields.phone}
               disabled={!isOwner}
             />
             <div className="grid gap-1 text-sm">
@@ -175,7 +173,7 @@ export default function SettingsPage() {
                 )}
               </p>
             </div>
-            <FormError message={profileError} />
+            <FormError message={profile.error} kind={profile.kind} />
             {isOwner ? <Button type="submit" size="lg" className="w-full sm:w-auto sm:justify-self-start">Salvar dados</Button> : null}
           </form>
         </CardContent>
@@ -206,7 +204,7 @@ export default function SettingsPage() {
               ))}
             </fieldset>
           ))}
-          <FormError message={settingsError} />
+          <FormError message={settings.error} kind={settings.kind} />
           {isOwner ? (
             <Button type="button" size="lg" className="w-full sm:w-auto sm:justify-self-start" onClick={saveSettings}>
               Salvar configurações

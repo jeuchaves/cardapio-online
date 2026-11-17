@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Field } from "@/components/field";
-import { FormError, errorMessage, fieldErrors } from "@/components/form-error";
+import { FormError, useFormFeedback } from "@/components/form-error";
 import { toast } from "@/components/ui/toast";
 import { EmptyList, ListSkeleton } from "@/components/list-states";
 import { NewItemCard } from "@/components/new-item-card";
@@ -30,8 +30,7 @@ export default function TablesPage() {
   const base = `/tenant/${restaurantId}/tables`;
 
   const [tables, setTables] = useState<RestaurantTable[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const { error, kind, fields, setFields, clearError, reset, report, fail, invalid } = useFormFeedback();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const load = () => setReloadKey((key) => key + 1);
@@ -40,8 +39,8 @@ export default function TablesPage() {
     if (!isOwner) return;
     api<{ data: RestaurantTable[] }>(`/tenant/${restaurantId}/tables`)
       .then(({ data }) => setTables(data))
-      .catch((err: unknown) => setError(errorMessage(err)));
-  }, [restaurantId, isOwner, reloadKey]);
+      .catch(report);
+  }, [restaurantId, isOwner, reloadKey, report]);
 
   if (!restaurant || !isOwner) {
     return <FormError message="Somente o dono do restaurante acessa os QR Codes." />;
@@ -50,16 +49,15 @@ export default function TablesPage() {
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(formElement)) return;
     try {
       await api(base, { method: "POST", body: { name: new FormData(formElement).get("name") } });
       formElement.reset();
       toast.add({ title: "Mesa criada.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
@@ -67,37 +65,36 @@ export default function TablesPage() {
   async function rename(event: React.FormEvent<HTMLFormElement>, table: RestaurantTable) {
     event.preventDefault();
     const name = new FormData(event.currentTarget).get("name");
-    setError(null);
-    setFields({});
+    reset();
+    if (invalid(event.currentTarget)) return;
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { name } });
       setEditingId(null);
       toast.add({ title: "Mesa renomeada.", type: "success" });
       load();
     } catch (err) {
-      setFields(fieldErrors(err));
-      setError(errorMessage(err));
+      fail(err);
     }
   }
 
   async function setActive(table: RestaurantTable, isActive: boolean) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${table.id}`, { method: "PATCH", body: { is_active: isActive } });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
   async function remove(table: RestaurantTable) {
-    setError(null);
+    clearError();
     try {
       await api(`${base}/${table.id}`, { method: "DELETE" });
       toast.add({ title: "Mesa excluída.", type: "success" });
       load();
     } catch (err) {
-      setError(errorMessage(err));
+      report(err);
     }
   }
 
@@ -112,7 +109,7 @@ export default function TablesPage() {
           Imprimir QR Codes
         </Button>
       </div>
-      <FormError message={error} />
+      <FormError message={error} kind={kind} />
 
       <Card className="break-inside-avoid">
         <CardHeader>
@@ -127,7 +124,7 @@ export default function TablesPage() {
       </Card>
 
       <NewItemCard title="Nova mesa" forceOpen={tables?.length === 0}>
-        <form onSubmit={create} className="flex max-w-2xl flex-wrap items-end gap-3">
+        <form noValidate onSubmit={create} className="flex max-w-2xl flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
             <Field name="name" label="Nome da mesa" maxLength={60} error={fields.name} required />
           </div>
@@ -157,6 +154,7 @@ export default function TablesPage() {
               />
               {editingId === table.id ? (
                 <form
+                  noValidate
                   onSubmit={(event) => void rename(event, table)}
                   className="flex flex-wrap items-end gap-3 print:hidden"
                 >

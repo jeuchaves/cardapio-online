@@ -1,3 +1,6 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ApiError } from "@/lib/api";
 
@@ -23,22 +26,43 @@ export function errorKind(error: unknown): ErrorKind {
   return "business";
 }
 
-// Valida pelos atributos nativos do campo (required, maxLength, type), que continuam sendo a única
-// fonte das regras do cliente, mas com mensagem própria junto do campo em vez do balão do navegador.
-// O servidor segue sendo a fonte de verdade. O formulário precisa de noValidate.
+type Validatable = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+function isValidatable(element: Element): element is Validatable {
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+  );
+}
+
+// Valida pelos atributos nativos do campo (required, maxLength, min, max, type, pattern), que continuam
+// sendo a única fonte das regras do cliente, mas com mensagem própria junto do campo em vez do balão do
+// navegador. Campos desabilitados não entram (`willValidate`). O servidor segue sendo a fonte de verdade.
+// O formulário precisa de noValidate. A chave do resultado é o `name` do campo.
 export function validateForm(form: HTMLFormElement): Record<string, string> {
   const result: Record<string, string> = {};
   for (const element of Array.from(form.elements)) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) continue;
-    if (!element.name || element.validity.valid) continue;
-    const label = form.querySelector<HTMLLabelElement>(`label[for="${element.id}"]`)?.textContent
-      ?.replace(/s*(opcional)s*$/, "")
+    if (!isValidatable(element) || !element.name || !element.willValidate || element.validity.valid) continue;
+    // Campo com controle próprio (Select do Base UI): o input escondido não tem id, e o rótulo aponta
+    // para o gatilho, que usa o mesmo valor do `name`
+    const labelNode =
+      (element.id ? form.querySelector<HTMLLabelElement>(`label[for="${element.id}"]`) : null) ??
+      form.querySelector<HTMLLabelElement>(`label[for="${element.name}"]`);
+    const label = labelNode?.textContent?.replace(/\s*\([^)]*\)\s*$/, "")
       .trim();
     const subject = label ?? "Este campo";
-    if (element.validity.valueMissing) result[element.name] = `${subject}: preencha este campo.`;
-    else if (element.validity.tooLong) result[element.name] = `${subject}: use no máximo ${element.maxLength} caracteres.`;
-    else if (element.validity.typeMismatch) result[element.name] = `${subject}: informe um valor no formato correto.`;
-    else result[element.name] = `${subject}: valor inválido.`;
+    const validity = element.validity;
+    let reason = "valor inválido.";
+    if (validity.valueMissing) reason = "preencha este campo.";
+    else if (validity.tooLong) reason = `use no máximo ${(element as HTMLInputElement).maxLength} caracteres.`;
+    else if (validity.tooShort) reason = `use pelo menos ${(element as HTMLInputElement).minLength} caracteres.`;
+    else if (validity.rangeUnderflow) reason = `o menor valor aceito é ${(element as HTMLInputElement).min}.`;
+    else if (validity.rangeOverflow) reason = `o maior valor aceito é ${(element as HTMLInputElement).max}.`;
+    else if (validity.badInput || validity.stepMismatch) reason = "informe um número inteiro.";
+    else if (validity.typeMismatch) reason = "informe um valor no formato correto.";
+    else if (validity.patternMismatch) reason = element.title || "informe um valor no formato correto.";
+    result[element.name] = `${subject}: ${reason}`;
   }
   return result;
 }
@@ -53,12 +77,51 @@ export function fieldErrors(error: unknown): Record<string, string> {
 }
 
 // Leva o foco ao primeiro campo inválido ou, sem campo, à mensagem de erro. Chamar num efeito,
-// depois que o erro foi renderizado.
-export function focusFirstError(form: HTMLFormElement | null) {
+// depois que o erro foi renderizado. Sem `root`, procura na página inteira (só o formulário que
+// acabou de falhar tem campos marcados).
+export function focusFirstError(root: ParentNode | null = document) {
   const target =
-    form?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
-    form?.querySelector<HTMLElement>('[role="alert"]');
+    root?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? root?.querySelector<HTMLElement>('[role="alert"]');
   target?.focus();
+}
+
+// Estado de erro de uma tela com formulários: mensagem da API (com a categoria), erros por campo e
+// foco no primeiro erro. Todos os formulários do painel e da plataforma usam o mesmo caminho:
+//   reset(); if (invalid(form)) return;  ...  try { await api(...) } catch (err) { fail(err); }
+// `report` é para ações que não são formulário (ativar, excluir, carregar): só a mensagem.
+export function useFormFeedback() {
+  const [error, setError] = useState<{ message: string; kind: ErrorKind } | null>(null);
+  const [fields, setFields] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (error || Object.keys(fields).length > 0) focusFirstError();
+  }, [error, fields]);
+
+  const clearError = useCallback(() => setError(null), []);
+  const reset = useCallback(() => {
+    setError(null);
+    setFields({});
+  }, []);
+  const report = useCallback((caught: unknown) => {
+    setError({ message: errorMessage(caught), kind: errorKind(caught) });
+  }, []);
+  const fail = useCallback(
+    (caught: unknown) => {
+      report(caught);
+      setFields(fieldErrors(caught));
+    },
+    [report],
+  );
+  // true quando há campo inválido; os erros aparecem junto dos campos e nada é enviado
+  const invalid = useCallback((form: HTMLFormElement) => {
+    const local = validateForm(form);
+    if (Object.keys(local).length === 0) return false;
+    setError(null);
+    setFields(local);
+    return true;
+  }, []);
+
+  return { error: error?.message ?? null, kind: error?.kind, fields, setFields, clearError, reset, report, fail, invalid };
 }
 
 export function FormError({ message, kind }: { message: string | null; kind?: ErrorKind }) {
@@ -68,7 +131,7 @@ export function FormError({ message, kind }: { message: string | null; kind?: Er
       <AlertDescription>
         {kind === "communication" ? <strong className="block">Falha de comunicação</strong> : null}
         {message}
-        {kind === "communication" ? " O que você digitou foi mantido: envie de novo." : null}
+        {kind === "communication" ? " O que você digitou foi mantido: tente de novo." : null}
       </AlertDescription>
     </Alert>
   );
