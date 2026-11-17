@@ -3,7 +3,7 @@
 - Data: 2026-11-16
 - Base: commit `66e1702` (branch `feat/fase-7-ux`), mais as alterações descritas na seção 2
 - Referências: ROADMAP, Fase 7 (F7-T8); [linha de base da F7-T1](F7-T1-linha-de-base.md); [auditoria da F7-T7](F7-T7-auditoria.md); [matriz de cobertura](F6-T1-matriz-de-cobertura.md), seção 11
-- Situação: **aguardando aprovação** do relatório da fase
+- Situação: **F7-T8 aprovada e commitada** (`217be44`). Validação em celular físico **pendente** (seção 6)
 - Escopo: contratos da API, permissões, transições de pedido e segurança inalterados. Sem dependência nova.
 
 ## 1. Resumo
@@ -100,7 +100,7 @@ Não há celular físico neste ambiente, então o roteiro previsto na F7-T8 **n�
 | F7-T5 | Catálogo e configuração do restaurante; folha de QR Codes para impressão | `b211ee4` |
 | F7-T6 | Plataforma, acesso e estrutura da aplicação | `91ce919` |
 | F7-T7 | Auditoria final de acessibilidade e responsividade | `66e1702` |
-| F7-T8 | Validação final e regressão (este relatório) | a definir |
+| F7-T8 | Validação final e regressão (este relatório) | `217be44` |
 
 Princípios mantidos: sem mudança de contrato da API, de permissões ou de transições de pedido; sem dependência npm nova; página do token sem recursos de terceiros, com `no-store` e `no-referrer`; E2E permanente restrito ao fluxo principal e às suas variantes.
 
@@ -133,5 +133,6 @@ Nenhuma é bloqueante e nenhuma foi tratada na F7-T8.
 | Suítes (`lint`, `typecheck`, `test`, `build`, `e2e`) | passando |
 | Verificações locais e comparação com a linha de base | concluídas |
 | Roteiro manual em celular real | **pendente** (seção 6) |
-| Relatório da fase | **aguardando aprovação** |
+| Relatório da fase | aprovado e commitado (`217be44`) |
+| Fase 7 em dispositivos físicos | **não validada**: depende da execução do roteiro da seção 6 |
 | Integração (merge, push, PR) | conforme autorização; nada foi enviado |
