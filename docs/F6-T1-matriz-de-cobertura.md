@@ -1,7 +1,7 @@
 # F6-T1: matriz de cobertura de testes
 
 Origem dos requisitos: `CLAUDE.md` seções 5 a 9 e 12; `docs/ROADMAP.md` seções 4.4, 5, 6 e 8; ADRs 0001 a 0005.
-Base: commit `d130f34` mais os testes adicionados na F6-T1 (seção 8).
+Base: commit `d130f34` mais os testes adicionados na F6-T1 (seção 8). A cobertura do frontend da Fase 7 está na seção 11 (F7-T8).
 Suíte da API (Japa): **334 testes** (322 existentes + 7 da F6-T1 + 5 do `?mesa=`), todos passando. Os caminhos abaixo são relativos a `apps/api/tests/functional/`.
 
 Legenda: ✅ coberto · ➕ coberto por teste novo da F6-T1 · ⚠️ divergência de contrato (seção 9) · 🔜 fora do alcance dos testes da API, verificado em outra tarefa (seção 10).
@@ -14,7 +14,7 @@ Legenda: ✅ coberto · ➕ coberto por teste novo da F6-T1 · ⚠️ divergênc
 | Cálculo de pedido no backend | ✅ | Seção 5 |
 | Transições de status | ✅ | Seção 5 |
 | Autenticação e autorização das rotas | ✅ | Seções 2, 4 e 6 |
-| Playwright: abrir cardápio, carrinho, pedido, restaurante atualiza status | ✅ | `apps/web/e2e/order-flow.spec.mjs` e `panel-orders.spec.mjs` (13 testes; F6-T2) |
+| Playwright: abrir cardápio, carrinho, pedido, restaurante atualiza status | ✅ | `apps/web/e2e/order-flow.spec.mjs` e `panel-orders.spec.mjs` (15 testes: 13 da F6-T2, 1 da F6-T3 e 1 da F7-T8; seção 11) |
 
 ## 2. ADR 0002: os 17 testes obrigatórios
 
@@ -150,7 +150,7 @@ Distribuição: `audit_log.spec.ts` tem 4 testes (plataforma: ações e recusas;
 - Situação encontrada na F6-T1: o controller ignorava o parâmetro, e o cliente só descobria uma mesa inválida ao enviar o pedido. Não havia vazamento entre restaurantes.
 - Correção: `PublicMenuController` passou a tratar `?mesa=`. O formato é validado antes da consulta (10 caracteres `a-z0-9`); a consulta filtra por `restaurant_id` e `is_active`. Qualquer outro caso (ausente, malformado, repetido, inexistente, inativa, de outro restaurante ou `dine_in` desabilitado) responde 200 sem `table`, idêntico entre si, sem oráculo.
 - Cobertura ✅: 5 testes em `public_menu.spec.ts` (grupo `Cardápio público | ?mesa=`).
-- Fora desta correção: o frontend ainda não exibe o nome da mesa; ele continua enviando `table_identifier` na criação do pedido, onde a API valida.
+- Fora desta correção: o frontend ainda não exibia o nome da mesa; ele continua enviando `table_identifier` na criação do pedido, onde a API valida. A exibição do nome da mesa e o aviso de mesa inválida foram feitos na F7-T4 (seção 11).
 
 ## 10. Fora do alcance dos testes da API
 
@@ -164,3 +164,20 @@ Distribuição: `audit_log.spec.ts` tem 4 testes (plataforma: ações e recusas;
 | Rate limit em memória com mais de uma instância | Documentado na F6-T7 (uma instância) |
 | Backup e restauração | F6-T5 |
 | Anonimização e retenção | F6-T6 (depende do ABERTO-01) |
+
+## 11. Fase 7: cobertura do frontend (F7-T8)
+
+A Fase 7 não alterou a API, os contratos, as permissões nem as transições de pedido: a suíte da API segue com **334 testes**, sem mudança. O E2E permanente (Playwright, ADR 0005) tem **15 testes** (9 em `order-flow.spec.mjs` e 6 em `panel-orders.spec.mjs`) e continua restrito ao fluxo principal e às suas variantes. Os demais comportamentos foram verificados por scripts locais com o Playwright, fora do repositório (resultados no [relatório da F7-T8](F7-T8-validacao-final.md)); eles **não** são testes permanentes.
+
+| Requisito da Fase 7 | Situação | Onde |
+| --- | --- | --- |
+| Cliente: abrir o cardápio, montar o carrinho, enviar o pedido e acompanhar | ✅ | E2E `order-flow.spec.mjs` |
+| Consumo no local com o QR da mesa (`?mesa=`) e só retirada sem ele | ✅ | E2E `order-flow.spec.mjs` (monta o carrinho; sem QR da mesa) |
+| Nome da mesa no cardápio e aviso de mesa inválida antes do envio | 🔜 script local | `t8` (o E2E não confere o nome exibido) |
+| Restaurante atualiza o status pelo detalhe, cancela com confirmação, trata o conflito 409 | ✅ | E2E `panel-orders.spec.mjs` |
+| Avanço de status direto pela lista (staff), sem abrir o detalhe | ➕ | E2E `panel-orders.spec.mjs` (F7-T8, teste novo) |
+| Visões da lista, indicador de pedido novo (título, região viva, selo), atualização só com a aba visível, conflito 409 na lista | 🔜 script local | `t8` (390, 320 e 1280 px) |
+| Cadastros, folha de QR Codes, equipe empilhada, configurações | 🔜 script local | `t5` (F7-T5) |
+| Plataforma, desativar com confirmação, mostrar senha, foco no erro, `/painel` com um restaurante | 🔜 script local | `t6` (F7-T6) |
+| Acessibilidade, responsividade, contraste, teclado, movimento reduzido | 🔜 script local | `t7` e [auditoria da F7-T7](F7-T7-auditoria.md) |
+| Página do token sem recursos de terceiros, `no-store` e `no-referrer` | ✅ | API (`public_order_tracking.spec.ts`, seção 7); conferido de novo no script `t8` |

@@ -155,3 +155,21 @@ test("a lista filtra por status", async ({ browser, baseURL, request }) => {
   await expect(link).toHaveCount(0);
   await page.context().close();
 });
+
+test("o staff avança o pedido pela lista, sem abrir o detalhe", async ({ browser, baseURL, request }) => {
+  const order = await createOrder(request);
+  const page = await openPanel(browser, baseURL, staffState);
+  await page.goto(panel); // a visão padrão é "Novos"
+  const link = page.getByRole("link", { name: new RegExp(`Pedido #${order.number}`) });
+  await expect(link).toBeVisible();
+
+  await page.getByRole("button", { name: `Confirmar #${order.number}`, exact: true }).click();
+  await expect(page.getByText(`Pedido #${order.number}: Confirmado.`)).toBeVisible();
+  await expect(link).toHaveCount(0); // saiu de "Novos"
+  expect(await customerStatus(browser, baseURL, order.token)).toBe("Confirmado");
+
+  await page.getByRole("button", { name: "Confirmados" }).click();
+  await expect(link).toBeVisible();
+  await expect(page.getByRole("button", { name: `Preparar #${order.number}`, exact: true })).toBeVisible();
+  await page.context().close();
+});
