@@ -952,6 +952,8 @@ Verificação sem dependência nova: scripts locais com o Playwright já instala
 | F7A-T12 | Ordenação por arrastar e soltar (L) | EV-04, D-08, F7A-T1 | `apps/web`, `apps/api` | **Sim** (endpoint atômico, EV-04) | Atomicidade, isolamento, alternativa por teclado, ordem igual no painel e no público |
 | F7A-T13 | Validação final e regressão | tarefas aprovadas | `apps/web`, `tests`, docs | Não | Suítes e E2E passando; auditoria nas telas alteradas; roteiro em celular físico; relatório aprovado |
 
+**Execução (2026-11-17):** T1 a T4, T5, T6, T7 (pilotos), T8, T10, T11 (documento) e T13 concluídas na branch `feat/fase-7a`; T5b, T9 e T12 ficam fora do lote (não são requisito do MVP, ver [F7A, seção 10](F7A-melhorias-ux-pre-producao.md)). [ADR 0009](decisions/0009-cardapio-publico-fase-7a.md) registra a composição do cardápio e o ajuste de tokens.
+
 **Tarefas independentes** (podem ser planejadas e executadas em qualquer ordem): F7A-T1, F7A-T2, F7A-T3 e F7A-T11. **Cadeias:** T4 → T5 → T5b; T4 → T10; T3 → T6; T1 → T7 → T8. **Bloqueadas até decisão e ADR:** T9, T12 e T5b.
 
 ### Fase 8 — Produção, infraestrutura e operação
@@ -1055,6 +1057,7 @@ Verificação sem dependência nova: scripts locais com o Playwright já instala
 | PEND-39 | **Mensagens de validação da API em inglês** (achado da F7-T7, por exemplo no telefone). Exige mudar o backend, fora do escopo da Fase 7; registrado como [EV-07](evolucoes-futuras-da-api.md). Depende de decisão do usuário. |
 | PEND-40 | **Melhorias de baixa severidade, sem bloqueio** (relatórios da F7-T5 a F7-T8): redesenhar a folha de QR Codes para impressão e validar o PDF renderizado e a leitura dos QR; remover `components/ui/table.tsx` e `.table-scroll`, hoje sem uso; trocar o `window.confirm` de "Nova senha do dono" por diálogo próprio (mantido por decisão); `<title>` igual entre estados da mesma tela (home, restaurante inativo e slug inexistente); o E2E permanente não confere o nome da mesa nem o aviso de mesa inválida (verificados por script local). Cada item exige tarefa e aprovação próprias. |
 | PEND-41 | **Fase 7A (planejamento, 2026-11-17):** 12 melhorias de UX levantadas pelo usuário após a Fase 7 foram agrupadas em 13 tarefas (F7A-T1 a F7A-T13) antes da produção, detalhadas em [F7A-melhorias-ux-pre-producao.md](F7A-melhorias-ux-pre-producao.md). Reaproveita EV-03 (tempo real), EV-04 (reordenação atômica), PEND-22, PEND-23, PEND-37, PEND-38 e PEND-39. **Não há pendência anterior sobre WebSocket** (só o ADR 0002, adendo 5, e o EV-03). Nenhuma tarefa está autorizada. |
+| PEND-42 | **Fase 7A executada (2026-11-17), lote aprovado:** D-01, D-02 (delegada), D-03, D-05 e D-09 decididas pelo usuário; T5b, T9 e T12 fora do lote. Pendentes: roteiro em celular físico (PEND-37), extensão do `validateForm` aos demais formulários e decisões D-04, D-06, D-07 e D-08 (tarefas fora do lote). |
 
 ### 11.2 Questões em aberto
 
