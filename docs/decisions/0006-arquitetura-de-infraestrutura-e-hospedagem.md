@@ -81,6 +81,20 @@ Por decisão do responsável, foi contratada a **Hostinger KVM 2** (2 vCPU, 8 GB
 - Docker Engine **29.10.0** e Compose **v5.8.0** do repositório oficial da Docker (o repositório publica para `resolute` [C]); backend de firewall `iptables`.
 - **Proteção do bypass do `ufw` pelo Docker:** a unidade `docker-user-firewall.service` (em `/etc/systemd/system`) recria a cadeia `DOCKER-USER` depois do Docker, liberando só respostas de conexões existentes e conexões novas cuja porta publicada seja 80 ou 443 vindas de `eth0`, e descartando o resto. Verificado: uma porta 8080 publicada por contêiner de teste ficou inacessível de fora, a 80 ficou acessível, e as regras e o `ufw` permaneceram depois do reinício. As regras valem para IPv4 e para a interface `eth0`; o IPv6 do Docker permanece no padrão (desligado).
 
+**Domínio (decidido e registrado em 2026-11-17)**
+
+- **menubora.com.br**, registrado no Registro.br por **R$ 40,00 por ano** (valor pago, informado pelo responsável); criado em 2026-11-17 e com expiração em **2027-11-17**. Renovação anual: valor de renovação **NÃO CONFIRMADO**.
+- DNS nos servidores do Registro.br (`a.auto.dns.br` e `b.auto.dns.br`), sem Cloudflare por ora (P1, P2 e P3 seguem em aberto). Zona com dois registros `A` (`menubora.com.br` e `www.menubora.com.br`) para o IP da VPS; sem `AAAA`, porque o Docker está só em IPv4.
+- Verificado em 2026-11-17: ambos os nomes resolvem para o IP da VPS no resolvedor público 8.8.8.8.
+- `NEXT_PUBLIC_SITE_URL` será `https://menubora.com.br` (a variável é lida no build e entra nos QR Codes; trocar o domínio depois invalida os QR Codes impressos).
+- Ainda não decidido: qual dos dois nomes (com ou sem `www`) é o canônico, com redirecionamento do outro.
+
+**Onde paramos (2026-11-17)**
+
+- Feito: VPS contratada, endurecida e verificada; Docker e proteção `DOCKER-USER` ativos; domínio registrado e apontado.
+- Acesso: SSH com usuário `deploy` e chave ed25519 protegida por passphrase. A chave privada existe só no computador do responsável; para outro dispositivo, copiar a chave por meio seguro ou gerar uma chave por máquina e acrescentá-la a `~/.ssh/authorized_keys`. Plano B: console do navegador no hPanel.
+- Próximos passos, em ordem sugerida: (1) decidir storage de imagens, destino do backup e Cloudflare; (2) modelo do usuário de deploy; (3) F8-T2 (Dockerfiles, Compose de produção, Nginx e HTTPS), só por pedido explícito; (4) medições de capacidade antes de 2026-12-17.
+
 **Pendências desta execução**
 
 - A unidade `docker-user-firewall.service` e as configurações do SSH **não estão versionadas** no repositório; registrar na F8-T5 (documentação de implantação).

@@ -308,6 +308,7 @@ O desembolso inicial é de R$ 1.031,76 à vista, e a renovação de R$ 1.871,76 
 - **P-01 e P-02** (confirmação por escrito da HypeHost): **sem objeto** enquanto a HypeHost não for usada. Para a Hostinger, ficam por confirmar no painel e no comprovante: impostos, cidade do datacenter, retenção do backup gratuito e se o Pix existe.
 - **P-03** (leitura integral do contrato): passa a valer para os termos da Hostinger (§6, §10 e §16 já lidos na pesquisa; leitura integral pendente).
 - **Prazo novo:** as medições de capacidade (P-10 a P-12) devem ocorrer dentro do reembolso de 30 dias, até **2026-12-17** (conferir a data exata no comprovante).
-- **Continuam abertas:** domínio e DNS (P-04), Cloudflare (P-05), destino do backup (P-08), questões jurídicas (P-06, P-18), storage de imagens e a autorização do driver S3 (P-17).
+- **P-04 (domínio): decidida em 2026-11-17.** Domínio **menubora.com.br** no Registro.br, **R$ 40,00 por ano** (valor pago, agora confirmado pelo responsável; antes só havia fonte de terceiros), DNS no próprio Registro.br, apontado para a VPS. Detalhes e verificação no adendo do ADR 0006. A renovação anual e o canônico com ou sem `www` seguem sem confirmação.
+- **Continuam abertas:** Cloudflare (P-05), destino do backup (P-08), questões jurídicas (P-06, P-18), storage de imagens e a autorização do driver S3 (P-17).
 
 **Matriz de capacidade (seção 4):** as estimativas partiam de 6 GB de RAM e 40 GB de disco. O KVM 2 tem 8 GB e 100 GB, então a margem estimada melhora, mas **nada foi medido**: as faixas continuam sendo estimativas [E] até os testes da seção 4.3.
