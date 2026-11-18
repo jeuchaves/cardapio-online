@@ -1,7 +1,7 @@
-# F8-B3 — Roteiro da troca de nameservers e do DNSSEC (sequência aprovada; não executado)
+# F8-B3 — Roteiro da troca de nameservers e do DNSSEC (sequência aprovada; execução iniciada pelo responsável em 2026-11-18)
 
 - **Tarefa:** F8-B3 do [plano da arquitetura B](ROADMAP.md) (tipo P, planejamento).
-- **Estado: SEQUÊNCIA APROVADA pelo responsável em 2026-11-18 (mensagem no chat); roteiro com pendências (ver seção 6); NÃO EXECUTADO.** A aprovação da sequência **não autoriza a execução**. Este documento só planeja. **Nenhum nameserver, DS, registro DNS ou configuração foi alterado.** A execução é a F8-B5 e exige pedido explícito.
+- **Estado: SEQUÊNCIA APROVADA pelo responsável em 2026-11-18 (mensagem no chat); roteiro com pendências (ver seção 6); EXECUÇÃO (F8-B5) INICIADA pelo responsável em 2026-11-18, após pedido explícito no chat.** O serviço "DNS do Registro.br" foi desativado e a troca está na espera de transição (seção 7). Este documento segue como planejamento; as ações nos painéis são do responsável e eu só faço consultas de leitura. **Correções feitas depois da tela real do Registro.br: a ordem dos passos 2 e 3 e a premissa de continuidade da resolução estavam erradas (seções 3, 4 e 7).**
 - **Criado em:** 2026-11-18.
 - **Depende de:** [F8-B1](F8-B1-roteiro-inventario-dns.md) (em andamento) e F8-B2 (em andamento; **2FA da Cloudflare pendente**, ver "Pré-condições"). Contexto: [ADR 0006](decisions/0006-arquitetura-de-infraestrutura-e-hospedagem.md).
 - **Critério de conclusão (ROADMAP):** roteiro aprovado pelo responsável, com o procedimento de retorno e o procedimento exato para o DS, definido com a configuração disponível na hora.
@@ -44,7 +44,7 @@ Trechos das páginas oficiais podem estar desatualizados em relação ao painel.
 3. **2FA da conta do Registro.br** confirmado (informado como ativo [R]; método não informado).
 4. **Janela sem tráfego real:** executar antes de qualquer deploy ou lançamento.
 5. **Cópia de segurança do estado atual:** registros do Registro.br (hoje dois `A`), nameservers atuais, DS e DNSKEY observados, exportação da zona da Cloudflare (BIND), sem tokens.
-6. **Retorno entendido:** o retorno ao DNS do Registro.br só é possível 4 horas depois da desativação [RB]. Como a zona da Cloudflare tem os mesmos valores (DNS only), o site continua resolvendo durante qualquer correção.
+6. **Retorno entendido:** o retorno ao DNS do Registro.br só é possível 4 horas depois da desativação [RB]. **Correção (2026-11-18):** a premissa anterior ("o site continua resolvendo durante qualquer correção") era **falsa para a janela de transição**: depois da desativação a zona do Registro.br fica vazia e a delegação externa só é liberada cerca de 2 horas depois; nesse intervalo o nome **não resolve** (observado em 2026-11-18). Só é aceitável por não haver tráfego real (gate 4).
 
 ## 4. Sequência proposta (rascunho para aprovação; nada executado)
 
@@ -56,14 +56,14 @@ Cada passo só começa depois de o anterior passar na sua verificação.
 | 1.2 | Registrar o estado atual: `dig NS`, `dig DS`, `dig DNSKEY`, `dig +trace`, valores dos registros | Saídas guardadas no documento de evidência |
 | 1.3 | Conferir a autoridade da Cloudflare (Q4) | `dig @danica.ns.cloudflare.com menubora.com.br SOA +norec` mostra `aa` |
 | 1.4 | Medir TTL do DS e da delegação (Q5) | Valores anotados; esperas definidas a partir deles |
-| 2 | No Registro.br: desativar o serviço "DNS do Registro.br" e informar `danica.ns.cloudflare.com` e `jack.ns.cloudflare.com`; **ler as mensagens da tela (Q1, Q3) antes de confirmar** | Pedido aceito pelo Registro.br (a delegação só é aceita se os servidores responderem com autoridade) |
-| 3 | Aguardar pelo menos 2 horas e acompanhar | `dig DS menubora.com.br` sem DS (confirma Q1); `dig NS` mostra os nameservers da Cloudflare; registros resolvem em 8.8.8.8 e 1.1.1.1; **sem SERVFAIL** em resolvedor que valida |
+| 2 | **Corrigido pela tela real:** no Registro.br, **desativar** o serviço "DNS do Registro.br". A tela informa que os servidores estão em transição e que servidores externos só poderão ser delegados após cerca de 2 horas. **Os nameservers não são informados nesta hora** | Tela de transição com a contagem regressiva; evidência: horário da desativação e texto da tela |
+| 3 | Aguardar cerca de 2 horas (contagem da tela) e acompanhar. **Depois**, informar no Registro.br `danica.ns.cloudflare.com` e `jack.ns.cloudflare.com` (a delegação só é aceita se os servidores responderem com autoridade), lendo antes as mensagens da tela (Q1, Q3). Em seguida, acompanhar a propagação | `dig DS menubora.com.br` sem DS (confirma Q1); `dig NS` mostra os nameservers da Cloudflare; registros resolvem em 8.8.8.8 e 1.1.1.1; **sem SERVFAIL** em resolvedor que valida |
 | 4 | Esperar a ativação da zona na Cloudflare (e-mail de zona ativa; o painel mostra "Active") | Status "Active" |
 | 5 | Esperar o TTL do NS antigo | Consultas diretas mostram só os nameservers da Cloudflare |
 | 6 | Cloudflare: **Enable DNSSEC**; copiar o DS; cadastrar no Registro.br; validar com DScheck | DS aceito pelo Registro.br; `dig +dnssec` mostra o indicador `ad` em resolvedor que valida |
 | 7 | Verificação final e atualização dos documentos (ADR 0006, ROADMAP, F8-B1) | Tabela de evidências preenchida |
 
-**Retorno (se algo falhar):** a zona da Cloudflare continua servindo os mesmos valores. Voltar ao DNS do Registro.br exige 4 horas de espera depois da desativação [RB]; durante esse tempo, corrigir na Cloudflare em vez de voltar. Definir antes quem decide e que limite de tempo justifica voltar.
+**Retorno (se algo falhar):** a zona da Cloudflare tem os mesmos valores, mas só responde pelo domínio depois da delegação (correção na seção 3, item 6). Voltar ao DNS do Registro.br exige 4 horas de espera depois da desativação [RB]; durante esse tempo, corrigir na Cloudflare em vez de voltar. Definir antes quem decide e que limite de tempo justifica voltar.
 
 ## 5. O que este roteiro não faz
 
@@ -83,3 +83,17 @@ Cada passo só começa depois de o anterior passar na sua verificação.
 Aprovação da sequência: registrada pelo responsável no chat em 2026-11-18. **Assinatura formal pendente** (a ser feita quando as pendências acima forem fechadas).
 
 Aprovado por: ______________________  Data: ____/____/______
+
+## 7. Registro da execução (2026-11-18)
+
+Evidência de consultas públicas somente leitura feitas por mim; as ações nos painéis são do responsável. Horários locais da máquina do responsável.
+
+| Hora | Fato | Fonte |
+| --- | --- | --- |
+| antes de ~15:29 | Estado de partida: zona da Cloudflare com os dois `A` em `187.53.123.179` (apex e `www`) nos dois nameservers; resposta com autoridade (`aa`); NS `d.sec.dns.br` e `e.sec.dns.br`; DS 56886/13/2 no `.com.br`; TTL de NS, DS e `A` de 3600 s (**Q4 e Q5 respondidas**) | [P] |
+| ~15:29 | Desativação do DNS do Registro.br aceita. Tela: "os servidores DNS do domínio se encontram em transição. Servidores DNS externos poderão ser delegados em aproximadamente 1h59m45s" (liberação prevista por volta de **17:29**) | [R] |
+| 15:29 | NS e DS ainda os do Registro.br. `d.sec.dns.br` e `e.sec.dns.br` respondem com autoridade (`aa`), mas **sem o registro `A`** (NOERROR/NODATA, SOA de 900 s); 1.1.1.1 e 8.8.8.8 também sem `A` | [P] |
+
+**Conclusões:** (1) **Q1, parcial:** o DS continuava presente às 15:29; a remoção não é imediata e o desaparecimento do DS segue a verificar com `dig DS` ao longo da espera; (2) a ordem real é desativar, esperar cerca de 2 horas e só então informar os servidores externos; (3) durante a espera o nome não resolve (sem tráfego real, aceito).
+
+**Próximos passos (à noite, de outra máquina):** repetir `dig NS`, `dig DS` e `dig A` (1.1.1.1, 8.8.8.8 e direto nos servidores); informar os nameservers da Cloudflare no Registro.br se a tela já permitir; depois, zona "Active", espera do TTL do NS (1 h), DNSSEC e DS na Cloudflare e DScheck (passos 4 a 7). **Não ativar o DNSSEC na Cloudflare enquanto `dig DS` ainda mostrar o DS antigo.** Status da F8-B5: Em andamento; F8-B3 segue com as pendências da seção 6.
