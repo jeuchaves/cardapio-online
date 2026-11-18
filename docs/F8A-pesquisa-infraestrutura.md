@@ -1,7 +1,7 @@
 # Fase 8-A: pesquisa de infraestrutura, custos e capacidade
 
 - Data da consulta: **2026-11-17**
-- Situação: **pesquisa para planejamento; nada contratado, nenhuma conta criada, nenhum código ou infraestrutura alterados.** Os ADRs [0006](decisions/0006-arquitetura-de-infraestrutura-e-hospedagem.md) e [0007](decisions/0007-estrategia-de-backup-e-restauracao.md) são **RASCUNHO, NÃO APROVADOS**.
+- Situação: **pesquisa para planejamento (consulta de 2026-11-17).** Depois dela, o responsável contratou a **Hostinger KVM 2** e preparou o servidor; ver a seção 10. O texto das seções 1 a 9 é histórico e **não foi reescrito**; onde ele diz "nada contratado", vale a seção 10. Os ADRs [0006](decisions/0006-arquitetura-de-infraestrutura-e-hospedagem.md) e [0007](decisions/0007-estrategia-de-backup-e-restauracao.md) são **RASCUNHO, NÃO APROVADOS**.
 - Referências: ROADMAP, Fase 8 (F8-T1 a F8-T6) e ABERTO-01 a ABERTO-08; [F6-T3](F6-T3-relatorio-de-seguranca.md); [ADR 0003](decisions/0003-imagens-e-qrcode.md); [ADR 0004](decisions/0004-rate-limit.md)
 - Orçamento máximo declarado pelo usuário: **R$ 100,00 por mês para toda a infraestrutura recorrente.**
 
@@ -268,3 +268,46 @@ Hipóteses: cada projeto é Node (web mais API), leve a médio; **os seis projet
 4. Decidir domínio, DNS e Cloudflare (P-04, P-05) e destino de backup (P-08).
 5. Só então, com autorização explícita, contratar o plano mensal da VPS (reembolso de 7 dias apenas na primeira compra), executar os testes P-10 a P-12 e redigir a versão final dos ADRs.
 6. Depois disso, a implementação da F8-T2 (Dockerfiles, Compose, Nginx, `trustProxy`) e da F8-T3.
+
+## 10. Atualização: contratação e preparação do servidor (2026-11-17 a 2026-11-18)
+
+O responsável escolheu a **Hostinger KVM 2** em vez da HypeHost KVM 6GB. Os detalhes, o estado do servidor e as pendências estão no adendo de execução do [ADR 0006](decisions/0006-arquitetura-de-infraestrutura-e-hospedagem.md). Aqui ficam os dados novos, lidos no carrinho e no assistente da Hostinger em 2026-11-17 [C], e o que mudou nas pendências.
+
+**Planos da Hostinger na página de VPS (preço promocional por 24 meses e renovação anunciada)**
+
+| Plano | vCPU | RAM | Disco NVMe | Banda | Promoção/mês | Renovação/mês |
+| --- | --- | --- | --- | --- | --- | --- |
+| KVM 1 | 1 | 4 GB | 50 GB | 4 TB | R$ 29,99 | R$ 59,99 |
+| **KVM 2 (contratado)** | 2 | 8 GB | 100 GB | 8 TB | R$ 42,99 (R$ 1.031,76 pelos 24 meses) | R$ 77,99 |
+| KVM 4 | 4 | 16 GB | 200 GB | 16 TB | R$ 59,99 | R$ 149,99 |
+| KVM 8 | 8 | 32 GB | 400 GB | 32 TB | R$ 119,99 | R$ 259,99 |
+
+**Itens da seção 1.4 que mudaram**
+
+| Item | Antes | Agora |
+| --- | --- | --- |
+| Localização do servidor | "Brasil" no FAQ; cidade NÃO CONFIRMADA | Região **Brasil** selecionável no assistente [C]; cidade continua NÃO CONFIRMADA |
+| Sistemas operacionais | NÃO CONFIRMADOS | Ubuntu, Debian, AlmaLinux, Rocky Linux e outros [C]; instalado o Ubuntu 26.04.1 LTS |
+| Ciclos | só o de 24 meses visível | continua só o de 24 meses no carrinho; mensal e 12 meses **NÃO CONFIRMADOS** |
+| Pagamento por Pix | NÃO CONFIRMADO | continua NÃO CONFIRMADO (o checkout mostrou cartão, Google Pay e NuPay entre as opções) |
+| Backup | semanal gratuito, retenção NÃO CONFIRMADA | backup diário **pago** (R$ 32,99/mês) oferecido e não contratado; o gratuito semanal e a retenção continuam sem confirmação |
+| Impostos | NÃO CONFIRMADA a inclusão | R$ 0 no carrinho; cálculo final depois do faturamento NÃO CONFIRMADO |
+| Painéis e aplicativos pré-instalados | não pesquisado | 19 painéis de controle e mais de mil aplicativos; **nenhum é necessário** para a topologia (Compose por projeto atrás do Nginx); os que trazem proxy próprio, como Traefik, Dokploy e Coolify, conflitam com o Nginx do ADR |
+
+**Orçamento com a Hostinger KVM 2 (cálculo do assistente, [E])**
+
+| Fase | VPS | Domínio rateado (NÃO CONFIRMADO) | Total mensal | Folga até R$ 100 |
+| --- | --- | --- | --- | --- |
+| Primeiros 24 meses | R$ 42,99 | R$ 3,33 | R$ 46,32 | R$ 53,68 |
+| Depois da renovação | R$ 77,99 | R$ 3,33 | R$ 81,32 | R$ 18,68 |
+
+O desembolso inicial é de R$ 1.031,76 à vista, e a renovação de R$ 1.871,76 também é de uma vez; ambos ficam fora da coluna mensal.
+
+**Pendências da seção 6 afetadas**
+
+- **P-01 e P-02** (confirmação por escrito da HypeHost): **sem objeto** enquanto a HypeHost não for usada. Para a Hostinger, ficam por confirmar no painel e no comprovante: impostos, cidade do datacenter, retenção do backup gratuito e se o Pix existe.
+- **P-03** (leitura integral do contrato): passa a valer para os termos da Hostinger (§6, §10 e §16 já lidos na pesquisa; leitura integral pendente).
+- **Prazo novo:** as medições de capacidade (P-10 a P-12) devem ocorrer dentro do reembolso de 30 dias, até **2026-12-17** (conferir a data exata no comprovante).
+- **Continuam abertas:** domínio e DNS (P-04), Cloudflare (P-05), destino do backup (P-08), questões jurídicas (P-06, P-18), storage de imagens e a autorização do driver S3 (P-17).
+
+**Matriz de capacidade (seção 4):** as estimativas partiam de 6 GB de RAM e 40 GB de disco. O KVM 2 tem 8 GB e 100 GB, então a margem estimada melhora, mas **nada foi medido**: as faixas continuam sendo estimativas [E] até os testes da seção 4.3.

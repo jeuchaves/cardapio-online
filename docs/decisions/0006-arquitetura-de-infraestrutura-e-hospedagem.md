@@ -1,7 +1,7 @@
 # ADR 0006 — Arquitetura de infraestrutura e hospedagem
 
-- **Status: RASCUNHO — NÃO APROVADO.** Nada deste documento é decisão. Nenhum serviço foi contratado e nenhuma conta foi criada.
-- Data do rascunho: 2026-11-17
+- **Status: RASCUNHO — NÃO APROVADO.** A topologia, o proxy, o storage e o domínio continuam sem decisão. **Atualização de 2026-11-17:** o responsável contratou a VPS Hostinger KVM 2 (ver "Adendo de execução"); isso não aprova o restante deste documento.
+- Data do rascunho: 2026-11-17 (adendo de execução: 2026-11-17 a 2026-11-18)
 - Referências: `CLAUDE.md` seções 1, 3, 5, 6, 9 e 12; ROADMAP, Fase 8 (F8-T1, F8-T2, F8-T6) e ABERTO-01 a ABERTO-08; [F6-T3](../F6-T3-relatorio-de-seguranca.md) (S-01 a S-09); [ADR 0002](0002-sessao-cors-csrf.md); [ADR 0003](0003-imagens-e-qrcode.md); [ADR 0004](0004-rate-limit.md); [pesquisa da Fase 8-A](../F8A-pesquisa-infraestrutura.md), com fontes, datas e itens não confirmados
 - Numeração: o 0006 estava reservado à topologia de produção (PEND-28).
 - Legenda: **[C]** confirmado em fonte do fornecedor · **[M]** medido · **[E]** estimativa · **NÃO CONFIRMADO** = sem fonte.
@@ -53,7 +53,41 @@ Decisões já aprovadas (PEND-28): Compose de produção separado, Next.js `stan
 2. leitura integral do contrato (P-03);
 3. medições de capacidade na própria VPS dentro do período de reembolso de 7 dias, **que vale só na primeira compra** [C].
 
-O fornecedor **não está escolhido**: a escolha é do responsável pelo projeto.
+**Superada em 2026-11-17:** o responsável escolheu a Hostinger KVM 2 (ver o adendo abaixo). A proposta da HypeHost e a comparação acima ficam como histórico.
+
+## Adendo de execução: VPS contratada (2026-11-17)
+
+Por decisão do responsável, foi contratada a **Hostinger KVM 2** (2 vCPU, 8 GB, 100 GB NVMe, 8 TB de banda), região **Brasil**, ciclo de **24 meses**, para o primeiro projeto. As decisões abaixo continuam abertas: domínio e DNS, proxy do Cloudflare, storage de imagens, destino do backup, PostgreSQL compartilhado, gestão de segredos.
+
+**Contratação** (fonte: carrinho e assistente de configuração da Hostinger, 2026-11-17)
+
+| Item | Valor |
+| --- | --- |
+| Preço | R$ 1.031,76 pelos 24 meses (equivalente a R$ 42,99/mês, oferta Black Friday) [C] |
+| Renovação anunciada | R$ 77,99/mês em ciclos de 24 meses (R$ 1.871,76 de uma vez) [C]; os termos permitem alterar taxas a qualquer momento [C] |
+| Impostos | R$ 0 no carrinho; cálculo final depois do faturamento **NÃO CONFIRMADO** |
+| Reembolso | 30 dias [C]; prazo para as medições de capacidade (critério 3): até **2026-12-17** (conferir a data exata no comprovante) |
+| Datacenter | "Brasil"; cidade **NÃO CONFIRMADA** (o assistente indicou 38 ms contra 149 ms dos Estados Unidos, a partir da rede do responsável) |
+| Backup do provedor | Backup diário pago (R$ 32,99/mês) **não contratado**, conforme o carrinho (confirmar no painel); o backup é nosso (ADR 0007) |
+| Domínio grátis de 1 ano | oferecido e **não resgatado**; depende da decisão de domínio |
+
+**Orçamento (cálculo do assistente, [E]):** R$ 42,99 mais R$ 3,33 de domínio rateado (NÃO CONFIRMADO) dá R$ 46,32 por mês nos primeiros 24 meses; na renovação, R$ 77,99 mais R$ 3,33 dá R$ 81,32, com folga de R$ 18,68 antes dos custos variáveis (R2, B2). O desembolso de R$ 1.031,76 é à vista e fica fora desse cálculo mensal.
+
+**Estado do servidor** (executado e verificado pelo responsável em 2026-11-17 e 2026-11-18)
+
+- Ubuntu **26.04.1 LTS** (`resolute`).
+- SSH só por chave ed25519; `PermitRootLogin no` e `PasswordAuthentication no` confirmados com `sshd -T`; usuário `deploy` com `sudo` (provisório, ver pendências).
+- `ufw` ativo com OpenSSH, 80 e 443 (IPv4 e IPv6); `fail2ban` (prisão `sshd`) e `unattended-upgrades` ativos.
+- Docker Engine **29.10.0** e Compose **v5.8.0** do repositório oficial da Docker (o repositório publica para `resolute` [C]); backend de firewall `iptables`.
+- **Proteção do bypass do `ufw` pelo Docker:** a unidade `docker-user-firewall.service` (em `/etc/systemd/system`) recria a cadeia `DOCKER-USER` depois do Docker, liberando só respostas de conexões existentes e conexões novas cuja porta publicada seja 80 ou 443 vindas de `eth0`, e descartando o resto. Verificado: uma porta 8080 publicada por contêiner de teste ficou inacessível de fora, a 80 ficou acessível, e as regras e o `ufw` permaneceram depois do reinício. As regras valem para IPv4 e para a interface `eth0`; o IPv6 do Docker permanece no padrão (desligado).
+
+**Pendências desta execução**
+
+- A unidade `docker-user-firewall.service` e as configurações do SSH **não estão versionadas** no repositório; registrar na F8-T5 (documentação de implantação).
+- O usuário `deploy` ainda tem `sudo`. O ADR pede um usuário de deploy sem privilégios, e o grupo `docker` equivale a acesso de root: decidir o modelo antes do primeiro deploy.
+- Conferir no painel quais recursos adicionais do assistente foram marcados (Monarx, Gerenciador Docker); a recomendação é não usar o Gerenciador Docker (camada extra sobre o Compose).
+- O critério de validação 4 (varredura externa) está só **parcialmente** atendido: foram testadas as portas 80 e 8080, não houve varredura completa.
+- Medições de capacidade (critério 3) dentro do prazo de reembolso.
 
 ## Topologia de referência (proposta)
 
@@ -80,7 +114,7 @@ Fora da VPS
 - **Multi-tenancy do projeto** (isolamento por `restaurant_id`) **não muda** e continua coberta pelos testes de isolamento.
 
 ### Sistema operacional e acesso
-- **Candidatas:** Ubuntu LTS ou Debian estável; **disponibilidade na HypeHost NÃO CONFIRMADA**.
+- **Instalado:** Ubuntu 26.04.1 LTS (ver o adendo de execução). Ubuntu e Debian estavam disponíveis na Hostinger [C].
 - Acesso por chave SSH, sem senha e sem login de root; usuário de deploy sem privilégios; `fail2ban` ou equivalente; atualizações de segurança automáticas; Docker Engine do repositório oficial; **o socket do Docker não é exposto**.
 - **Cuidado conhecido:** portas publicadas pelo Docker **contornam** o firewall comum do sistema; só o Nginx publica porta, e a cadeia `DOCKER-USER` deve bloquear o resto.
 
@@ -153,8 +187,8 @@ Ver a matriz da pesquisa (seção 3): R$ 62,33 (KVM 4GB), **R$ 92,33 (KVM 6GB, m
 
 ## Riscos
 
-- Exclusão definitiva dos dados 3 dias após suspensão por atraso (HypeHost, termos §06): exige backup externo e pagamento em dia.
-- Reajuste por IPCA e repasses (§14); a folga de R$ 7,67 é pequena.
+- Hostinger: renovação de R$ 1.871,76 de uma vez a cada 24 meses; os termos permitem alterar taxas a qualquer momento e suspender ou cancelar por falha de pagamento **sem carência fixa** (§16). Exige backup externo, alerta de vencimento e caixa para a renovação.
+- Histórico, HypeHost (não contratada): exclusão dos dados 3 dias após suspensão (§06) e reajuste por IPCA (§14).
 - Backup do provedor em melhor esforço e com textos conflitantes.
 - PostgreSQL compartilhado como domínio de falha comum.
 - Servidor único; indisponibilidade enquanto se restaura.
@@ -169,7 +203,7 @@ F8-T1 (esta decisão), pesquisa da Fase 8-A, ADR 0007, validação jurídica (AB
 
 ## Decisões pendentes (do responsável pelo projeto)
 
-1. Fornecedor e plano da VPS, ciclo de pagamento e aceitação do risco de exclusão por inadimplência.
+1. ~~Fornecedor e plano da VPS, ciclo de pagamento~~ **decidido em 2026-11-17: Hostinger KVM 2, 24 meses** (ver o adendo). Continua aberta a aceitação do risco de renovação (taxas alteráveis a qualquer momento e cobrança de 24 meses de uma vez).
 2. Domínio e registrador.
 3. Cloudflare: P1, P2 ou P3.
 4. Storage de imagens: R2 ou volume; opção 1 ou 2 de entrega.
