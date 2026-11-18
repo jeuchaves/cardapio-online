@@ -16,6 +16,21 @@ Fatos sobre o provedor de VPS em consideração (HypeHost, termos lidos em 2026-
 
 Portanto: **o backup do provedor não faz parte desta estratégia**; ele é, no máximo, um bônus.
 
+## Adendo de decisões (2026-11-18)
+
+O responsável decidiu, no F8-T1, que o destino dos backups cifrados é o **Backblaze B2**, com cifragem por **`age`** no servidor antes do envio, em conta e fornecedor diferentes do R2 das imagens ([ADR 0006](0006-arquitetura-de-infraestrutura-e-hospedagem.md), adendo de 2026-11-18). **Continuam abertos e bloqueiam a implementação:** a análise jurídica da transferência internacional (P-08; o B2 não tem região no Brasil), a retenção definitiva (ABERTO-01, P-18), o custodiante da chave privada, a ferramenta e o canal de alerta (P-09) e os RPO/RTO provisórios. Nenhuma conta foi criada. O status do ADR continua RASCUNHO. **Efeito do PostgreSQL isolado (2026-11-18):** o dump passa a ser feito no container do próprio projeto, sem os papéis de outros projetos; o item "papéis do servidor" do escopo vale só para o usuário do Cardápio Digital. Seguem **abertas**, e não concluídas: custódia da chave privada `age` e validação jurídica do B2.
+
+## Adendo (2026-11-18) — efeitos da arquitetura B no backup
+
+A orientação da arquitetura B pediu atualização do "ADR 0007"; a arquitetura está registrada no **ADR 0006**, e este ADR recebe só os efeitos sobre o backup. Nenhuma decisão de backup foi alterada.
+
+- O bucket público de imagens (R2) **não pode** guardar backups. O destino do backup continua sendo o B2, em conta e fornecedor diferentes.
+- **A conta Cloudflare concentra DNS, proxy e R2.** A configuração da zona (registros, regras de WAF, rate limit, redirecionamentos, regras de cache e de cabeçalho) passa a ser dado a proteger: exportá-la periodicamente e guardá-la fora da Cloudflare, sem tokens. Sem isso, a recriação da zona depende da memória de quem a configurou.
+- Segredos novos entram no escopo da gestão de segredos (P-16, ainda aberta): credenciais do R2, token de API da Cloudflare, chave privada do certificado de origem e do AOP.
+- A cópia das imagens (R2 para outro fornecedor) continua necessária: o R2 passa a ser também o ponto único de entrega.
+- Na restauração em VPS limpa, o DNS não precisa mudar (a Cloudflare aponta para o IP da origem); é preciso atualizar o IP no registro proxiado e reemitir o certificado de origem e o AOP. Incluir esses passos no procedimento.
+- Seguem abertas e **não concluídas**: custódia da chave `age`, validação jurídica do B2, gestão de segredos.
+
 ## Objetivos de recuperação (provisórios)
 
 | Objetivo | Valor provisório | Observação |

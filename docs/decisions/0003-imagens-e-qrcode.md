@@ -36,6 +36,18 @@ Produtos e o restaurante têm imagem (produto e logo). Cada restaurante imprime 
 - Backup (F6-T5) cobre o banco **e** as imagens.
 - Trocar de provedor exige copiar os objetos e ajustar as variáveis de ambiente, sem alterar o banco.
 
+## Adendo (2026-11-18) — entrega de imagens em produção
+
+Revisão motivada pela arquitetura B do [ADR 0006](0006-arquitetura-de-infraestrutura-e-hospedagem.md): em produção, as imagens são entregues por `img.menubora.com.br` (domínio personalizado do bucket R2, com a zona na Cloudflare), e não mais pela rota `/uploads/*` da API. Efeitos:
+
+- `UPLOADS_PUBLIC_BASE` passa a ser a URL do domínio de imagens; o banco guarda só a chave, então não há migration (decisão 3 deste ADR).
+- O bucket de imagens é público e só contém imagens; nunca recebe backups nem dados de pedidos.
+- Os cabeçalhos que o controller de `/uploads` define (`nosniff`, CSP restritiva, `Cache-Control`) precisam existir também nas respostas do R2 (metadados do objeto ou Transform Rules); verificar na validação do driver S3.
+- A rota `/uploads/*` e o rewrite do Next permanecem para desenvolvimento e testes com disco local.
+- O CSP do frontend (Report-Only, F8-T2) deve permitir o domínio de imagens em `img-src`.
+- **O upload continua passando pela API** (validação por bytes, 5 MB, nome gerado pelo servidor). Upload pré-assinado direto ao R2 **não foi adotado** e exigiria novo ADR (ABERTO-18).
+- O driver S3 continua **não instalado e não validado contra o R2**.
+
 ## Adendo — F3-T5 (upload de imagens)
 
 - **Biblioteca:** `@adonisjs/drive` 4 (recurso oficial; flydrive 2). Só o serviço `fs` está configurado (`apps/api/config/drive.ts`), em `UPLOADS_ROOT` (padrão `storage/`, ignorado pelo git). O SDK do S3 é peer opcional e **não foi instalado**: o serviço S3 será acrescentado à mesma configuração quando o provedor for escolhido (ABERTO-02). **O caminho S3 não foi validado contra nenhum provedor.**
