@@ -1,0 +1,135 @@
+# Pilha de PRODUÇÃO do projeto (web, api e postgres próprio). Arquivo separado do docker-compose.yml
+# de desenvolvimento (ADR 0006). O Nginx fica na pilha de borda: deploy/edge/docker-compose.yml, que
+# cria a rede "menubora_edge". Suba a borda ANTES desta pilha.
+#
+# Uso (na VPS, com as imagens já carregadas; o build é feito fora da VPS):
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d postgres
+#   docker compose -f docker-compose.prod.yml --env-file .env.production --profile tools run --rm migrate
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d api web
+#
+# Regras: PostgreSQL sem porta publicada e só na rede interna; nenhum serviço desta pilha publica
+# porta no host; segredos só no .env.production (fora do repositório); uma instância da API.
+# Limites de memória são propostas iniciais (ADR 0006) e devem ser ajustados pelas medições.
+#
+# Limitação conhecida: o upload de imagens usa o disco do contêiner até o driver S3/R2 entrar
+# (F8-B12); em produção, imagens enviadas antes disso não persistem nem são servidas.
+
+name: menubora
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-api-env: &api-env
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: "3333"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  APP_NAME: ${APP_NAME:-cardapio-api}
+  APP_KEY: ${APP_KEY:?defina APP_KEY no .env.production}
+  APP_URL: ${APP_URL:?defina APP_URL (https) no .env.production}
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env.production}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.production}
+  DB_DATABASE: ${POSTGRES_DB:?defina POSTGRES_DB no .env.production}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env.production}
+    # Poucas conexões: uma API, pool pequeno. Valor inicial, a medir.
+    command: ["postgres", "-c", "max_connections=30"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    mem_limit: 768m
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: cardapio-api:${IMAGE_TAG:?defina IMAGE_TAG (tag imutável por commit) no .env.production}
+    restart: unless-stopped
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      edge:
+        aliases: [cardapio-api]
+      internal: {}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /repo/apps/api/build/tmp:uid=1000,gid=1000,size=32m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/api/v1/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    image: cardapio-web:${IMAGE_TAG:?defina IMAGE_TAG (tag imutável por commit) no .env.production}
+    restart: unless-stopped
+    networks:
+      edge:
+        aliases: [cardapio-web]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/apps/web/.next/cache:uid=1000,gid=1000,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    environment:
+      NODE_OPTIONS: --max-old-space-size=384
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Passo explícito do deploy: fazer backup do banco ANTES (ROADMAP, F8-T5). Não roda com "up".
+  # Nunca rodar migration:rollback em produção: apaga tabelas.
+  migrate:
+    image: cardapio-api:${IMAGE_TAG:?defina IMAGE_TAG (tag imutável por commit) no .env.production}
+    profiles: ["tools"]
+    restart: "no"
+    command: ["node", "ace.js", "migration:run", "--force"]
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+networks:
+  edge:
+    external: true
+    name: menubora_edge
+  # Sem acesso à internet nem ao Nginx: só a API alcança o banco.
+  internal:
+    internal: true
+
+volumes:
+  pgdata:

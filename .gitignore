@@ -40,3 +40,8 @@ pgdata/
 .claude/settings.local.json
 .DS_Store
 Thumbs.db
+
+# Produção (F8-B4): só os exemplos são versionados; certificados e chaves nunca
+!.env.production.example
+*.pem
+*.key

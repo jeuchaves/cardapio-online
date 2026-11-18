@@ -1,0 +1,45 @@
+# Pilha de BORDA: Nginx, único serviço que publica porta no host (ADR 0006). Cria a rede "menubora_edge",
+# à qual a pilha do projeto (docker-compose.prod.yml) se conecta. Suba esta pilha ANTES da do projeto.
+#
+#   cp .env.example .env     (preencha CERTS_DIR)
+#   docker compose up -d
+#
+# Os certificados NÃO ficam no repositório: CERTS_DIR deve conter origin.pem, origin.key (Cloudflare
+# Origin CA) e aop-client-ca.pem (certificado de cliente do Authenticated Origin Pulls).
+
+name: menubora-edge
+
+services:
+  nginx:
+    # Tag flutuante por enquanto; fixar a versão (ou o digest) na documentação de implantação (F8-T5).
+    image: nginxinc/nginx-unprivileged:stable-alpine
+    restart: unless-stopped
+    ports:
+      - "443:8443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - ${CERTS_DIR:?defina CERTS_DIR no .env da borda}:/etc/nginx/certs:ro
+    networks: [edge]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      # O Nginx recusa handshakes sem nome de host válido; o teste confere só que o processo está de pé.
+      test: ["CMD-SHELL", "kill -0 $$(cat /tmp/nginx.pid)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+networks:
+  edge:
+    name: menubora_edge

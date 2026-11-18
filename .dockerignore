@@ -1,0 +1,42 @@
+# Contexto de build das imagens (raiz do repositório). Mantém fora da imagem o que não é
+# código do app: segredos, ferramentas de agentes (S-07), documentação, dependências e builds locais.
+
+# Segredos e variáveis de ambiente
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Ferramentas de agentes e do editor (S-07)
+.agents
+.claude
+.playwright-mcp
+.idea
+
+# Controle de versão e documentação
+.git
+.gitignore
+docs
+*.md
+skills-lock.json
+
+# Dependências e artefatos de build locais (a imagem instala e compila do zero)
+node_modules
+**/node_modules
+**/.next
+**/.next-e2e
+**/build
+**/dist
+**/out
+**/tmp
+**/*.tsbuildinfo
+**/coverage
+
+# Dados locais, testes e deploy
+apps/api/storage
+apps/web/e2e
+apps/web/test-results
+apps/web/playwright-report
+docker
+deploy
+docker-compose*.yml
