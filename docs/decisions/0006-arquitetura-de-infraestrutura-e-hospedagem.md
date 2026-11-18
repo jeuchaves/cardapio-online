@@ -215,9 +215,9 @@ Cada controle precisa de **um responsável principal**; a coluna "Proposta" era 
 | --- | --- | --- |
 | 17 | A API permanece na **mesma origem**, em `/api`. **Não** criar `api.menubora.com.br` agora. Preservar autenticação, cookies e a ausência de CORS. | **Decidido.** O ADR 0002 não muda (`APP_URL` único, cookie sem `Domain`, `Origin` exato). Não há BFF. Reabrir exige novo ADR. |
 | 18 | O upload de imagens **continua pela API**. Sem upload direto ao R2 enquanto isso exigir remover ou contornar validações. | **Decidido.** Reabrir só com ADR que preserve a validação por bytes, o limite de 5 MB, o nome gerado pelo servidor e a remoção do arquivo anterior. |
-| 19 | A análise jurídica continua **pendência obrigatória antes de dados reais de clientes em produção**. Investigar alternativas para reduzir a exposição do `tracking_token`; desligar log não elimina o processamento pela Cloudflare. | **Parcial.** Pendência jurídica mantida. Investigação feita (abaixo); **a escolha técnica sobre o token continua aberta.** |
+| 19 | A análise jurídica continua **pendência obrigatória antes de dados reais de clientes em produção**. Investigar alternativas para reduzir a exposição do `tracking_token`; desligar log não elimina o processamento pela Cloudflare. | **Escolha técnica decidida (2026-11-18): alternativa A, definitiva.** Pendência jurídica **mantida** (obrigatória antes de dados reais). Investigação abaixo. |
 | 20 | 2FA forte, tokens de privilégio mínimo, controle de acesso, procedimento documentado de recuperação da conta e de exportação da zona. | **Política adotada** (abaixo). **O procedimento escrito e testado ainda não existe** (F8-B15). |
-| 21 | Matriz de responsabilidade entre Cloudflare, Nginx e aplicação, sem replicar configuração nas três camadas. | **Matriz elaborada como proposta; aguarda aprovação.** Nenhum valor numérico foi definido. |
+| 21 | Matriz de responsabilidade entre Cloudflare, Nginx e aplicação, sem replicar configuração nas três camadas. | **Matriz M01 a M23 APROVADA como está (2026-11-18). Certificado de origem: Cloudflare Origin CA (decidido).** Nenhum valor numérico foi definido; saem da F8-B4 e da F8-B11. |
 
 ### Exposição do `tracking_token` (ABERTO-19): investigação
 
@@ -245,6 +245,8 @@ Cada controle precisa de **um responsável principal**; a coluna "Proposta" era 
 
 **B mais C** tiram o token de **toda URL**. **Nenhuma alternativa elimina o processamento pela Cloudflare**, que termina o TLS e vê cabeçalhos e corpos; isso continua sujeito à avaliação jurídica (P-06). A recomendação, sem ser decisão: A é necessária em qualquer caso; B, C e D formam um pacote a decidir depois do parecer jurídico, e custam menos **antes** da publicação.
 
+**Decisão do responsável (2026-11-18): alternativa A, definitiva.** B, C e D ficam descartadas: o token continua no caminho (página e API), a Cloudflare o vê na URL e ele continua sem validade limitada. Foi decidida **sem aguardar o parecer jurídico**, que segue obrigatório (P-06, F8-B14) e **pode reabrir** esta decisão. Os controles da alternativa A entram na F8-B4 e na F8-B11 (M13, M14 e M20).
+
 ### Conta Cloudflare (ABERTO-20): política adotada e esboço do procedimento
 
 **Política adotada pelo responsável:** 2FA forte, tokens com privilégio mínimo, controle de acesso, procedimento documentado de recuperação da conta e de exportação da zona. O esboço abaixo é **proposta a validar no painel**; o procedimento escrito e testado é a tarefa F8-B15 e **não existe ainda**.
@@ -255,9 +257,10 @@ Cada controle precisa de **um responsável principal**; a coluna "Proposta" era 
 - **Acesso:** o menor número possível de membros, com função mínima; sem login compartilhado; revisão periódica do registro de auditoria da conta.
 - **Exportação:** arquivo da zona (formato BIND) e exportação das regras de WAF, rate limit, cache, redirecionamento e cabeçalhos por token somente leitura; a cada mudança e em periodicidade a definir; guardada **cifrada e fora da Cloudflare**, sem tokens; teste de recriação em zona de teste.
 - **Rota de retorno:** o Registro.br continua dono do domínio. Se a conta Cloudflare for perdida, os nameservers podem ser repontados no Registro.br (propagação lenta). Por isso a conta do Registro.br também exige 2FA (suporte a conferir) e seus dados de recuperação entram no mesmo procedimento.
+- **Risco aceito em 2026-11-18:** a conta foi criada com o e-mail pessoal do responsável e com **login pelo Google**; o 2FA próprio da Cloudflare **não está verificado**. O responsável **aceitou o risco por escrito** e adiou a resolução. Esta política **não está atendida**; o risco deve ser reaberto antes de criar tokens de API ou o bucket do R2, e a conta passa a controlar o DNS depois da F8-B5.
 - **Contingência com a origem fechada:** desligar o proxy só funciona se o firewall permitir acesso direto. O procedimento de emergência (quem abre o firewall, como, por quanto tempo, como volta) deve existir e ser testado **antes** do F8-B10.
 
-### Matriz de responsabilidade (ABERTO-21): **proposta, aguarda aprovação**
+### Matriz de responsabilidade (ABERTO-21): **APROVADA pelo responsável em 2026-11-18**
 
 Princípio: **um dono por controle**; as outras camadas só repassam, não repetem. Camada mais externa mais folgada, camada mais interna mais estrita. Os valores numéricos (limites, tamanhos de cache) **não foram definidos aqui** e saem da F8-B4 e da F8-B11. Itens marcados "[E]" dependem de conferir o plano Free no painel.
 
@@ -266,7 +269,7 @@ Princípio: **um dono por controle**; as outras camadas só repassam, não repet
 | M01 | DNS e DNSSEC | Cloudflare (autoritativo); Registro.br guarda o DS | Uma só autoridade de zona; o DS precisa coincidir com a chave de assinatura | Zona completa antes da troca; DS conforme o roteiro F8-B3 | DS antigo publicado derruba a resolução em resolvedores que validam | `dig +trace`, `dig DS`, `dig +dnssec` |
 | M02 | TLS com o visitante | Cloudflare | Termina o TLS do visitante; é o ponto exposto | Full (strict), TLS mínimo 1.2, TLS 1.3 ligado; nunca Flexible | Modo diferente de strict permite origem sem certificado válido | Origem com certificado inválido deve dar 526 |
 | M03 | HTTP para HTTPS | Cloudflare ("Always Use HTTPS") | Decide na borda, antes de chegar à origem | Regra ligada; origem sem redirecionamento próprio | Redirecionamento duplicado no Nginx pode gerar laço; Let's Encrypt HTTP-01 precisa da porta 80 | `curl -I http://...` devolve 301 uma única vez |
-| M04 | Autenticar a Cloudflare perante a origem | Nginx (AOP por zona) e firewall (M05) | Só o Nginx vê o certificado de cliente; comprova que a conexão é da nossa conta | `ssl_verify_client optional`, depois `on`; certificado de cliente da zona carregado na Cloudflare; TLS 1.2 ou superior; certificado de origem **Origin CA (proposta, ABERTO-21)** ou Let's Encrypt | Modo `on` antes de validar derruba o site; Let's Encrypt exige porta 80 e renovação | Acesso direto sem certificado de cliente é recusado; log com `$ssl_client_verify` |
+| M04 | Autenticar a Cloudflare perante a origem | Nginx (AOP por zona) e firewall (M05) | Só o Nginx vê o certificado de cliente; comprova que a conexão é da nossa conta | `ssl_verify_client optional`, depois `on`; certificado de cliente da zona carregado na Cloudflare; TLS 1.2 ou superior; certificado de origem **Cloudflare Origin CA (decidido em 2026-11-18)**, sem Let's Encrypt | Modo `on` antes de validar derruba o site; Let's Encrypt exige porta 80 e renovação | Acesso direto sem certificado de cliente é recusado; log com `$ssl_client_verify` |
 | M05 | Rede da origem | Firewall da VPS (`ufw` e `DOCKER-USER`) | Camada diferente do AOP; reduz exposição e ruído | Apenas faixas da Cloudflare em 80 e 443 (80 só se M04 exigir), lista com fonte e atualização versionadas, **só depois de F8-B9** | Lista desatualizada derruba o site (522); bloqueia monitores externos e o ACME direto | Varredura externa; acesso via Cloudflare 200; reinício mantém regras |
 | M06 | DDoS volumétrico e de aplicação | Cloudflare | Absorve antes da VPS; a VPS não consegue absorver sozinha | Proteção gerenciada padrão; sem ajuste inicial | Nenhum direto; **não fazer teste de carga contra a produção sem conferir os termos da Cloudflare e do provedor** | Painel de eventos; teste de carga só em homologação autorizada |
 | M07 | WAF | Cloudflare (regras gerenciadas do plano e poucas regras personalizadas por caminho [E]) | Filtro de padrões conhecidos, por caminho (`/api`) na mesma origem | Começar em modo de registro, depois ativar; sem regras que registrem o caminho do token | Falsos positivos em observações livres e JSON do pedido; **não substitui a validação do backend** | E2E do fluxo de pedido com WAF ativo; observações com texto atípico |
@@ -353,7 +356,7 @@ A F8-T2 só começa por **pedido explícito** e quando:
 2. O usuário administrativo estiver criado e testado no servidor e o `deploy` sem `sudo` (execução do responsável; ainda não feita).
 3. Conta e bucket do R2 estiverem criados pelo responsável, com credencial restrita ao bucket e meio de pagamento confirmado.
 4. As medições de capacidade (scrypt em Node 24, carga de 30 minutos, memória sem OOM, disco) estiverem feitas **antes de 2026-12-17**, para fixar os `mem_limit` e o ABERTO-05.
-5. ~~Aceite do risco sem DDoS/WAF~~ **Superado pela arquitetura B.** No lugar: a matriz de responsabilidade e o certificado de origem (ABERTO-21) aprovados, e a escolha técnica sobre o `tracking_token` (ABERTO-19) registrada. O ABERTO-17 já está decidido. Esses itens bloqueiam a escrita do Nginx e do Compose, não a execução.
+5. ~~Aceite do risco sem DDoS/WAF~~ **Superado pela arquitetura B.** No lugar: a matriz de responsabilidade e o certificado de origem (ABERTO-21) aprovados, e a escolha técnica sobre o `tracking_token` (ABERTO-19) registrada. O ABERTO-17 já está decidido. **Os três foram decididos em 2026-11-18** (ver "Decisões de 2026-11-18"). Eles bloqueavam a escrita do Nginx e do Compose, não a execução.
 6. A entrega das imagens Docker estiver decidida, ou a F8-T2 for limitada aos arquivos (Dockerfiles, Compose, Nginx), sem deploy.
 7. A gestão de segredos (P-16) estiver decidida, ao menos para `APP_KEY`, senhas do PostgreSQL e credenciais do R2. Sem isso, nenhum segredo é criado na VPS.
 
@@ -400,7 +403,7 @@ Fora da VPS
 - `NEXT_PUBLIC_SITE_URL` é lida no build e fixa a URL dos QR Codes (`apps/web/src/lib/public-url.ts`): o domínio precisa estar definido antes do build de produção, e trocar o slug ou o domínio invalida QR Codes impressos.
 
 ### TLS e Nginx
-- TLS 1.2 ou superior; certificados Let's Encrypt (ou certificado de origem, se houver proxy); HSTS.
+- TLS 1.2 ou superior; **certificado de origem: Cloudflare Origin CA** (decidido em 2026-11-18; Let's Encrypt descartado); HSTS.
 - Nginx: encaminha `/api/*` e `/uploads/*` à API e o resto ao Next; `client_max_body_size` de 6 MB **somente** nas duas rotas de imagem e valor baixo no restante; `limit_req`; headers de segurança e CSP Report-Only; **redação do token** no `access_log` e estratégia do `error_log` (ABERTO-04), comprovada com token sentinela.
 - Entre o Nginx e a API, a conexão é interna; a API não é publicada.
 
