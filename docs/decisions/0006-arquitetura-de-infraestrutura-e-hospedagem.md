@@ -289,6 +289,26 @@ Princípio: **um dono por controle**; as outras camadas só repassam, não repet
 
 **Regras da matriz:** (1) nenhuma camada repete configuração de outra; (2) onde duas camadas agem (M04 e M05, M09), as funções são diferentes, não iguais; (3) mudar o dono de um controle exige atualizar esta matriz e o ADR.
 
+### Limites e estado do plano Free (conferidos no painel em 2026-11-18)
+
+Leitura do painel da zona `menubora.com.br`, feita em 2026-11-18 só para consulta, sem alterar configuração. **Resolve os itens marcados "[E]" da matriz** para os limites abaixo. Os limites podem mudar; reconferir antes da F8-B11.
+
+| Item | Observado no painel |
+| --- | --- |
+| Regras personalizadas de segurança (WAF) | **0 de 5** |
+| Regras de rate limiting | **0 de 1** (só uma regra: a camada Cloudflare do M09 é uma regra única) |
+| Regras gerenciadas | "Cloudflare managed ruleset": **sempre ativo**. Implantar outros conjuntos: "Upgrade plan" (indisponível no Free) |
+| Regras de redirecionamento | **0 de 10**; existe modelo "Redirect from WWW to root" (M15) |
+| Transform Rules (incluindo cabeçalhos de resposta) | **0 de 10** |
+| Cache Rules | 0 ativas; **o painel não exibe o limite do plano** (não presumido) |
+| Registros DNS | 2 de 200 |
+| Authenticated Origin Pulls | **Disponível no Free**, nos três níveis (Global, por zona e por hostname), todos desligados e sem certificado enviado |
+| Certificado de origem (Origin CA) | Criação disponível, nenhum certificado criado |
+| Modo SSL/TLS | **"Full"** (padrão, sem validar o certificado de origem); passa a "Full (strict)" no F8-B7 |
+| DNSSEC na Cloudflare | **Não habilitado**; Multi-signer DNSSEC desligado |
+
+**Padrões da Cloudflare a rever na F8-B11 (relacionados à M14):** "Replace insecure JavaScript libraries" está **ligado** e reescreve JavaScript servido, o que contraria a regra de não reescrever conteúdo; "Bot Preference Sync" (escreve na frente do `robots.txt`) foi tratado no onboarding, mas **seu estado não é verificável antes da ativação da zona** (a seção AI Crawl Control pede a troca de nameservers). Confirmar os dois depois da ativação e antes de ligar o proxy.
+
 ### Implantação gradual
 
 A ordem aprovada está no ROADMAP (Fase 8, plano da arquitetura B). **Regra obrigatória:** nunca restringir o firewall às faixas da Cloudflare antes de confirmar que o proxy e o AOP funcionam; a ordem errada causa indisponibilidade (erro 522 [C]). O AOP deve ser validado primeiro em modo opcional (`ssl_verify_client optional`, registrando o resultado) e só depois obrigatório.
